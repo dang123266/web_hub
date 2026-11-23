@@ -1,0 +1,95 @@
+/* THEME flak: nền xanh dương + hồng, kèm khẩu pháo cao xạ (xem theme.js). */
+:root {
+  color-scheme: dark;
+  --bg:#070b1f; --bg2:#0d1440; --fg:#e9edff; --muted:#9aa6d6; --line:rgba(120,160,255,.22);
+  --card:rgba(255,255,255,.045); --blue:#3b82f6; --sky:#5cc8ff; --pink:#ff4fa3; --pink2:#ff8fc7;
+  --accent:var(--sky); --accent-fg:#071029; --radius:14px; --width:900px;
+}
+html { background:var(--bg); }
+body {
+  margin:0; color:var(--fg); font:16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; min-height:100vh;
+  background:
+    radial-gradient(900px 520px at 85% -8%, rgba(255,79,163,.30), transparent 60%),
+    radial-gradient(900px 560px at 8% 4%, rgba(59,130,246,.34), transparent 60%),
+    radial-gradient(700px 500px at 50% 112%, rgba(255,79,163,.16), transparent 60%),
+    linear-gradient(180deg, var(--bg2), var(--bg) 70%);
+  background-attachment:fixed;
+}
+body::before { /* lưới mờ */
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+  background-image:linear-gradient(rgba(120,160,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(120,160,255,.07) 1px, transparent 1px);
+  background-size:44px 44px; mask-image:radial-gradient(ellipse at 50% 30%, #000 20%, transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse at 50% 30%, #000 20%, transparent 75%);
+}
+.site-header, .site-main, .site-footer { position:relative; z-index:1; }
+a { color:var(--sky); text-underline-offset:3px; }
+a:hover { color:var(--pink2); }
+
+.site-header { background:rgba(8,12,38,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+.site-nav, .site-main, .site-footer { max-width:var(--width); margin:0 auto; padding:16px; box-sizing:border-box; }
+.site-nav { display:flex; gap:6px 18px; flex-wrap:wrap; align-items:center; }
+.site-nav a { color:var(--fg); text-decoration:none; padding:4px 10px; border-radius:999px; border:1px solid transparent; transition:.18s; }
+.site-nav a:hover { border-color:var(--pink); color:#fff; box-shadow:0 0 14px rgba(255,79,163,.45); }
+.site-nav a[aria-current="page"] { border-color:var(--sky); color:#fff; box-shadow:0 0 14px rgba(92,200,255,.4); }
+.site-nav .brand { font-weight:800; margin-right:auto; border:0; padding-left:0; background:linear-gradient(90deg, var(--sky), var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.site-nav .brand:hover { box-shadow:none; color:transparent; filter:brightness(1.2); }
+
+.hero { padding:44px 0 18px; }
+.hero h1 { font-size:clamp(2rem, 5vw, 3.1rem); line-height:1.15; margin:0 0 10px; background:linear-gradient(90deg, var(--sky) 0%, #a98bff 50%, var(--pink) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hero p { color:var(--muted); margin:0; font-size:1.1rem; }
+.site-main h1, .site-main h2 { letter-spacing:.2px; }
+.site-main article h1 { background:linear-gradient(90deg, var(--sky), var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.site-main article h2 { border-left:4px solid var(--pink); padding-left:10px; margin-top:34px; }
+.section-title { margin:36px 0 12px; font-size:1.2rem; border-left:4px solid var(--pink); padding-left:10px; }
+
+.card-grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; display:flex; flex-direction:column; gap:8px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:.2s; }
+.card:hover { border-color:rgba(255,79,163,.6); box-shadow:0 0 26px rgba(255,79,163,.18), 0 0 26px rgba(59,130,246,.18); transform:translateY(-2px); }
+.card h3 { margin:0; font-size:1.15rem; }
+.card p { margin:0; color:var(--muted); }
+.card-meta { color:var(--muted); font-size:.85rem; }
+.card-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:auto; padding-top:10px; }
+.card-featured { border-color:transparent; background:linear-gradient(var(--bg2), var(--bg2)) padding-box, linear-gradient(120deg, var(--sky), var(--pink)) border-box; border:1.5px solid transparent; box-shadow:0 0 30px rgba(92,200,255,.14), 0 0 30px rgba(255,79,163,.14); }
+
+.button { display:inline-block; padding:9px 16px; border-radius:999px; border:1.5px solid transparent; color:#fff; text-decoration:none; font-weight:700; background:linear-gradient(120deg, var(--blue), var(--pink)); box-shadow:0 4px 18px rgba(255,79,163,.28); transition:.18s; }
+.button:hover { color:#fff; filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 6px 24px rgba(255,79,163,.45); }
+.button-secondary { background:transparent; color:var(--sky); border-color:var(--sky); box-shadow:none; }
+.button-secondary:hover { color:#fff; border-color:var(--pink); background:rgba(255,79,163,.14); box-shadow:0 0 18px rgba(255,79,163,.35); }
+.button-disabled { opacity:.5; pointer-events:none; filter:grayscale(.4); }
+
+.update-list { list-style:none; padding:0; margin:0; }
+.update-list li { padding:10px 0; border-bottom:1px solid var(--line); display:flex; gap:12px; }
+.update-list .date { color:var(--pink2); font-size:.9rem; min-width:92px; font-variant-numeric:tabular-nums; }
+
+.site-main pre { overflow:auto; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:rgba(5,8,30,.7); }
+.site-main code { color:var(--pink2); }
+.site-main pre code { color:var(--fg); }
+.site-main table { border-collapse:collapse; width:100%; }
+.site-main th, .site-main td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+.site-main th { color:var(--sky); }
+.site-footer { color:var(--muted); font-size:14px; padding-bottom:150px; } /* chừa chỗ cho khẩu pháo */
+
+/* ---------- Khẩu pháo (do theme.js tạo) ---------- */
+.flak { position:fixed; left:14px; bottom:12px; z-index:9990; pointer-events:none; user-select:none; -webkit-user-select:none; display:flex; align-items:flex-end; gap:10px; }
+.flak svg { width:150px; height:110px; overflow:visible; filter:drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+.flak-side { display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding-bottom:6px; }
+.flak-hint { pointer-events:none; font-size:12px; line-height:1.35; color:var(--muted); background:rgba(8,12,38,.72); border:1px solid var(--line); border-radius:10px; padding:5px 9px; max-width:170px; }
+.flak-hint { transition:opacity .5s; }
+.flak-hint-off { opacity:0; }
+.flak-hint b { color:var(--pink2); font-weight:700; }
+.flak-surrender { pointer-events:auto; cursor:pointer; font:600 14px/1 system-ui, sans-serif; color:#fff; padding:9px 14px; border-radius:999px; border:1.5px solid var(--sky); background:rgba(8,12,38,.8); transition:.18s; display:inline-flex; gap:8px; align-items:center; }
+.flak-surrender:hover { border-color:var(--pink); box-shadow:0 0 18px rgba(255,79,163,.5); }
+.flak-surrender:focus-visible { outline:2px solid var(--pink2); outline-offset:2px; }
+.flak-count { min-width:20px; text-align:center; font-size:12px; padding:2px 6px; border-radius:999px; background:var(--pink); color:#fff; }
+.flak-count[data-n="0"] { background:rgba(255,255,255,.14); color:var(--muted); }
+
+/* nút đã bị bắn: biến mất nhưng vẫn giữ chỗ để bố cục không nhảy */
+.flak-gone { visibility:hidden !important; pointer-events:none !important; }
+@keyframes flak-pop { 0% { transform:scale(.2); opacity:0; } 70% { transform:scale(1.12); opacity:1; } 100% { transform:scale(1); } }
+.flak-back { animation:flak-pop .45s ease-out; }
+
+.flak-fx { position:fixed; inset:0; pointer-events:none; z-index:9995; overflow:hidden; }
+.flak-p { position:absolute; border-radius:50%; will-change:transform, opacity; }
+.flak-ring { position:absolute; border-radius:50%; border:3px solid var(--pink2); box-shadow:0 0 18px var(--pink), inset 0 0 14px var(--sky); will-change:transform, opacity; }
+.flak-shot { position:absolute; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:#fff; box-shadow:0 0 10px 3px var(--sky), 0 0 22px 6px var(--pink); will-change:transform; }
+@media (max-width:640px) { .flak svg { width:120px; height:88px; } .flak-hint { display:none; } }

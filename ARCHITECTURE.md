@@ -9,7 +9,7 @@ core/            bố cục, menu, routing, đọc module.json  (đứng yên)
   lib/modules.js        glob đọc modules/*/module.json và content/*.md
   pages/index.astro     trang chủ, liệt kê mô-đun
   pages/[...slug].astro sinh trang từ content/*.md của mọi mô-đun
-themes/<id>/     giao diện (theme.json + style.css), chọn trong site.config.json
+themes/<id>/     giao diện (theme.json + style.css, tùy chọn theme.js), chọn trong site.config.json
 site.config.json tên site, mô tả ngắn, link repo, theme đang dùng
 modules/<id>/    mỗi mô-đun một thư mục, độc lập
   module.json    khai báo cho core (bắt buộc)
@@ -35,7 +35,7 @@ scripts/check-modules.mjs  kiểm tra hợp đồng (npm run check)
 - Menu: Trang chủ, Công cụ, rồi các mô-đun có `menu.show` khác false.
 
 ## Giao diện (theme)
-Giao diện là mô-đun riêng trong `themes/`. Core chỉ dùng các class cố định (xem `themes/README.md`); đổi giao diện chỉ cần sửa hoặc thay theme, không đụng core hay nội dung.
+Giao diện là mô-đun riêng trong `themes/`. Core chỉ dùng các class cố định (xem `themes/README.md`); theme có thể thêm `theme.js` cho hiệu ứng trang trí, core nhúng vào cuối trang; đổi giao diện chỉ cần sửa hoặc thay theme, không đụng core hay nội dung.
 
 ## Thêm mô-đun mới
 Sao chép `modules/MODULE_TEMPLATE` thành `modules/<id>`, sửa nội dung, chạy `npm run check` và `npm run build`.

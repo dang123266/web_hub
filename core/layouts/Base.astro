@@ -1,7 +1,8 @@
 ---
 import { getMenuModules, withBase } from '../lib/modules.js';
-import { site, getThemeCss } from '../lib/site.js';
+import { site, getThemeCss, getThemeJs } from '../lib/site.js';
 const { title = site.title } = Astro.props;
+const themeJs = getThemeJs();
 const here = Astro.url.pathname.replace(/\/$/, '') || '/';
 const items = [
   { label: 'Trang chủ', href: withBase('/') },
@@ -29,5 +30,6 @@ const isHere = (href) => href.replace(/\/$/, '') === here || (href === withBase(
     <footer class="site-footer">
       {site.title} · <a href={site.repo}>Góp ý trên GitHub</a>
     </footer>
+    {themeJs && <script is:inline set:html={themeJs}></script>}
   </body>
 </html>
