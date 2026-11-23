@@ -1,0 +1,12 @@
+{
+  "id": "viet-sub",
+  "name": "VIET-SUB",
+  "summary": "Tự động lồng tiếng Việt cho video, chạy trên máy yếu, dùng dịch vụ miễn phí.",
+  "version": "2.1",
+  "downloads": [
+    { "label": "Tải main.py", "url": "https://github.com/dang123266/web_hub/releases/latest/download/main.py" },
+    { "label": "Các bản phát hành", "url": "https://github.com/dang123266/web_hub/releases" }
+  ],
+  "updated": "2026-11-23",
+  "featured": true
+}

@@ -1,6 +1,6 @@
 # ARCHITECTURE (bản rút gọn cho AI)
 
-Tài liệu gốc: "Đặc tả dự án cho các AI: Website mô-đun và VIET-DUB". File này chỉ tóm tắt mục 4–5 và 7–8.
+Tài liệu gốc: "Đặc tả dự án cho các AI: Website mô-đun và VIET-SUB". File này chỉ tóm tắt mục 4–5 và 7–8.
 
 ## Cấu trúc
 ```
