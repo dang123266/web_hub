@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro';
+import { getModules, withBase } from '../lib/modules.js';
+const modules = getModules();
+---
+<Base title="Trang chủ">
+  <h1>Chào mừng</h1>
+  <p>Nơi chia sẻ các công cụ và dự án nhỏ.</p>
+  <ul>
+    {modules.map((m) => (
+      <li><a href={withBase(m.route)}><strong>{m.name}</strong></a>{m.summary ? ` — ${m.summary}` : ''}</li>
+    ))}
+  </ul>
+</Base>

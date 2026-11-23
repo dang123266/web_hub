@@ -1,0 +1,9 @@
+{
+  "id": "viet-dub",
+  "name": "VIET-DUB",
+  "version": "0.1.0",
+  "route": "/viet-dub",
+  "entry": "content/index.md",
+  "menu": { "label": "VIET-DUB", "order": 10 },
+  "summary": "Công cụ tự động lồng tiếng Việt cho video."
+}

@@ -1,0 +1,10 @@
+{
+  "id": "ten-module",
+  "name": "Tên dự án",
+  "summary": "Một câu mô tả.",
+  "version": "0.1.0",
+  "downloads": [
+    { "label": "Tải về", "url": "https://github.com/<user>/<repo>/releases/latest" }
+  ],
+  "updated": "2026-01-01"
+}

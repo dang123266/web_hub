@@ -1,0 +1,9 @@
+{
+  "id": "archive",
+  "name": "Lưu trữ",
+  "version": "0.1.0",
+  "route": "/archive",
+  "entry": "content/index.md",
+  "menu": { "label": "Lưu trữ", "order": 20 },
+  "summary": "Nơi lưu các bài viết và tài liệu cũ."
+}

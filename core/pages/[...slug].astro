@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+import { getModules, getModulePages } from '../lib/modules.js';
+
+export function getStaticPaths() {
+  const out = [];
+  for (const m of getModules()) {
+    const route = m.route.replace(/^\/|\/$/g, '');
+    for (const p of getModulePages(m.dir)) {
+      const slug = p.file === 'index' ? route : `${route}/${p.file}`;
+      out.push({ params: { slug }, props: { page: p, mod: m } });
+    }
+  }
+  return out;
+}
+const { page, mod } = Astro.props;
+const Content = page.Content;
+const title = page.frontmatter?.title ?? mod.name;
+---
+<Base title={title}>
+  <article><Content /></article>
+</Base>
