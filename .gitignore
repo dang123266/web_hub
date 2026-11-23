@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+api_key.txt
+*.key
+.env
+.env.*
