@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import { getProjects, withBase } from '../lib/modules.js';
+const projects = getProjects();
+---
+<Base title="Công cụ">
+  <section class="hero">
+    <h1>Công cụ</h1>
+    <p>Các công cụ có thể tải về và dùng.</p>
+  </section>
+  {projects.length === 0 && <p>Chưa có công cụ nào.</p>}
+  <div class="card-grid">
+    {projects.map((p) => (
+      <div class="card">
+        <h3>{p.name}</h3>
+        <p>{p.summary}</p>
+        <div class="card-meta">{[p.version && `Phiên bản ${p.version}`, p.updated && `Cập nhật ${p.updated}`].filter(Boolean).join(' · ')}</div>
+        <div class="card-actions">
+          {(p.downloads ?? []).length > 0
+            ? p.downloads.map((d, i) => <a class={i === 0 ? 'button' : 'button button-secondary'} href={d.url}>{d.label}</a>)
+            : <span class="button button-disabled">Sắp có</span>}
+          <a class="button button-secondary" href={withBase(p.route)}>Hướng dẫn</a>
+        </div>
+      </div>
+    ))}
+  </div>
+</Base>

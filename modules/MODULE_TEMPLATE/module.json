@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "route": "/ten-module",
   "entry": "content/index.md",
-  "menu": { "label": "Tên menu", "order": 50 },
+  "menu": { "label": "Tên menu", "order": 50, "show": true },
   "summary": "Một câu mô tả mô-đun."
 }

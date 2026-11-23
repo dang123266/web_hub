@@ -1,37 +1,33 @@
 ---
-import { getModules, withBase } from '../lib/modules.js';
-const { title = 'Trang chủ' } = Astro.props;
-const modules = getModules();
+import { getMenuModules, withBase } from '../lib/modules.js';
+import { site, getThemeCss } from '../lib/site.js';
+const { title = site.title } = Astro.props;
+const here = Astro.url.pathname.replace(/\/$/, '') || '/';
+const items = [
+  { label: 'Trang chủ', href: withBase('/') },
+  { label: 'Công cụ', href: withBase('/tools') },
+  ...getMenuModules().map((m) => ({ label: m.menu?.label ?? m.name, href: withBase(m.route) })),
+];
+const isHere = (href) => href.replace(/\/$/, '') === here || (href === withBase('/') && here === withBase('').replace(/\/$/, ''));
 ---
 <!doctype html>
 <html lang="vi">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <style>
-      :root { color-scheme: light dark; --bg:#fff; --fg:#1b1b1f; --muted:#666; --line:#e3e3e8; --accent:#2f6fed; }
-      @media (prefers-color-scheme: dark) { :root { --bg:#16161a; --fg:#ececf0; --muted:#9a9aa5; --line:#2c2c33; --accent:#6c9bff; } }
-      body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 system-ui, sans-serif; }
-      header { border-bottom:1px solid var(--line); }
-      nav, main, footer { max-width:760px; margin:0 auto; padding:16px; }
-      nav { display:flex; gap:20px; flex-wrap:wrap; align-items:center; }
-      nav a { color:var(--fg); text-decoration:none; }
-      nav a:hover { color:var(--accent); }
-      nav .brand { font-weight:700; margin-right:auto; }
-      main a { color:var(--accent); }
-      pre { overflow:auto; padding:12px; border:1px solid var(--line); border-radius:8px; }
-      footer { color:var(--muted); font-size:14px; }
-    </style>
+    <title>{title === site.title ? title : `${title} · ${site.title}`}</title>
+    <style is:inline set:html={getThemeCss()}></style>
   </head>
   <body>
-    <header>
-      <nav>
-        <a class="brand" href={withBase('/')}>Trang của mình</a>
-        {modules.map((m) => <a href={withBase(m.route)}>{m.menu?.label ?? m.name}</a>)}
+    <header class="site-header">
+      <nav class="site-nav">
+        <a class="brand" href={withBase('/')}>{site.title}</a>
+        {items.map((i) => <a href={i.href} aria-current={isHere(i.href) ? 'page' : undefined}>{i.label}</a>)}
       </nav>
     </header>
-    <main><slot /></main>
-    <footer>Website mô-đun. Quy ước xem ARCHITECTURE.md.</footer>
+    <main class="site-main"><slot /></main>
+    <footer class="site-footer">
+      {site.title} · <a href={site.repo}>Góp ý trên GitHub</a>
+    </footer>
   </body>
 </html>

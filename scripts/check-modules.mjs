@@ -23,7 +23,20 @@ for (const dir of fs.readdirSync(root, { withFileTypes: true })) {
   if (m.version && !SEMVER.test(m.version)) fail(dir.name, 'version phải dạng MAJOR.MINOR.PATCH');
   if (m.route && !m.route.startsWith('/')) fail(dir.name, 'route phải bắt đầu bằng "/"');
   if (m.route) { if (routes.has(m.route)) fail(dir.name, `route "${m.route}" bị trùng`); routes.add(m.route); }
+  if (m.menu && m.menu.show !== undefined && typeof m.menu.show !== 'boolean') fail(dir.name, 'menu.show phải là true hoặc false');
   if (m.entry && !fs.existsSync(path.join(root, dir.name, m.entry))) fail(dir.name, `không thấy file entry "${m.entry}"`);
 }
+// Kiểm tra theme được chọn trong site.config.json
+try {
+  const cfg = JSON.parse(fs.readFileSync('site.config.json', 'utf8'));
+  const td = path.join('themes', String(cfg.theme));
+  if (!cfg.theme || !fs.existsSync(path.join(td, 'style.css'))) { errors++; console.error(`✗ site.config.json: theme "${cfg.theme}" thiếu themes/<id>/style.css`); }
+  else {
+    const tj = path.join(td, 'theme.json');
+    if (!fs.existsSync(tj)) { errors++; console.error(`✗ themes/${cfg.theme}: thiếu theme.json`); }
+    else if (JSON.parse(fs.readFileSync(tj, 'utf8')).id !== cfg.theme) { errors++; console.error(`✗ themes/${cfg.theme}: id trong theme.json phải trùng tên thư mục`); }
+  }
+} catch (e) { errors++; console.error('✗ site.config.json thiếu hoặc không hợp lệ'); }
+
 if (errors) { console.error(`\n${errors} lỗi hợp đồng mô-đun.`); process.exit(1); }
 console.log('✓ Tất cả mô-đun hợp lệ.');

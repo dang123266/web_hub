@@ -1,14 +1,44 @@
 ---
 import Base from '../layouts/Base.astro';
-import { getModules, withBase } from '../lib/modules.js';
-const modules = getModules();
+import { getProjects, withBase } from '../lib/modules.js';
+import { site } from '../lib/site.js';
+const projects = getProjects();
+const featured = projects.find((p) => p.featured) ?? projects[0];
+const updates = [...projects].sort((a, b) => String(b.updated).localeCompare(String(a.updated))).slice(0, 5);
 ---
-<Base title="Trang chủ">
-  <h1>Chào mừng</h1>
-  <p>Nơi chia sẻ các công cụ và dự án nhỏ.</p>
-  <ul>
-    {modules.map((m) => (
-      <li><a href={withBase(m.route)}><strong>{m.name}</strong></a>{m.summary ? ` — ${m.summary}` : ''}</li>
-    ))}
-  </ul>
+<Base>
+  <section class="hero">
+    <h1>Chào mừng</h1>
+    <p>{site.tagline}</p>
+  </section>
+
+  {featured && (
+    <section>
+      <h2 class="section-title">Công cụ nổi bật</h2>
+      <div class="card card-featured">
+        <h3>{featured.name}</h3>
+        <p>{featured.summary}</p>
+        <div class="card-actions">
+          <a class="button" href={withBase('/tools')}>Xem trong Công cụ</a>
+          <a class="button button-secondary" href={withBase(featured.route)}>Giới thiệu và hướng dẫn</a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {updates.length > 0 && (
+    <section>
+      <h2 class="section-title">Mới cập nhật</h2>
+      <ul class="update-list">
+        {updates.map((p) => (
+          <li><span class="date">{p.updated}</span><span><a href={withBase(p.route)}>{p.name}</a>{p.version ? ` ${p.version}` : ''}</span></li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section>
+    <h2 class="section-title">Góp ý</h2>
+    <p>Gặp lỗi hoặc có ý tưởng? Gửi trên <a href={site.repo + '/issues'}>GitHub Issues</a>.</p>
+  </section>
 </Base>
