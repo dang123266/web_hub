@@ -1,0 +1,9 @@
+{
+  "id": "viet-sub",
+  "name": "VIET-SUB",
+  "version": "0.2.0",
+  "route": "/viet-sub",
+  "entry": "content/index.md",
+  "menu": { "label": "VIET-SUB", "order": 10, "show": false },
+  "summary": "Công cụ tự động lồng tiếng Việt cho video."
+}
