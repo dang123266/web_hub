@@ -1,9 +1,9 @@
 ---
-title: Lưu trữ
-date: 2026-11-23
-summary: Mục lưu trữ, đang xây dựng.
+title: Kho lưu trữ
+date: 2026-11-24
+summary: Kho các dự án nhỏ, bài PowerPoint và đủ thứ linh tinh, có thanh tìm kiếm.
 ---
 
-# Lưu trữ
+# Kho lưu trữ
 
-Mục này đang được xây dựng.
+Các dự án nhỏ, bài PowerPoint và đủ thứ thập cẩm. Gõ từng chữ vào ô tìm kiếm, không cần đúng dấu hay đúng tên.

@@ -28,3 +28,19 @@ a { color:var(--accent); }
 .update-list .date { color:var(--muted); font-size:.9rem; min-width:90px; }
 .site-main pre { overflow:auto; padding:12px; border:1px solid var(--line); border-radius:8px; }
 .site-footer { color:var(--muted); font-size:14px; }
+
+/* Bộ sưu tập / tìm kiếm */
+.search-box { display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 8px; }
+.search-input, .search-sort { font:inherit; color:var(--fg); background:var(--card); border:1px solid var(--line); border-radius:8px; padding:9px 12px; }
+.search-input { flex:1 1 260px; }
+.chip-row { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+.chip { font:inherit; color:var(--fg); background:transparent; border:1px solid var(--line); border-radius:999px; padding:4px 12px; cursor:pointer; }
+.chip-active { border-color:var(--accent); color:var(--accent); font-weight:700; }
+.result-list { list-style:none; padding:0; margin:0; }
+.result-item { padding:12px 0; border-bottom:1px solid var(--line); }
+.result-title { font-weight:700; }
+.result-summary { margin:4px 0; color:var(--muted); }
+.result-meta, .result-count { color:var(--muted); font-size:.88rem; }
+.tag { font:inherit; font-size:.8rem; color:var(--accent); border:1px solid var(--line); border-radius:999px; padding:1px 9px; margin-left:6px; background:transparent; }
+mark.mark { background:rgba(47,111,237,.25); color:inherit; border-radius:3px; }
+.item-files { display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin:16px 0; }

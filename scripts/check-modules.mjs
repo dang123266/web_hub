@@ -26,6 +26,37 @@ for (const dir of fs.readdirSync(root, { withFileTypes: true })) {
   if (m.menu && m.menu.show !== undefined && typeof m.menu.show !== 'boolean') fail(dir.name, 'menu.show phải là true hoặc false');
   if (m.entry && !fs.existsSync(path.join(root, dir.name, m.entry))) fail(dir.name, `không thấy file entry "${m.entry}"`);
 }
+// Kiểm tra các mục của bộ sưu tập (modules/<id>/items/*.md)
+function frontmatter(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return m ? m[1] : null;
+}
+for (const dir of fs.readdirSync(root, { withFileTypes: true })) {
+  if (!dir.isDirectory() || dir.name === 'MODULE_TEMPLATE') continue;
+  const mj = path.join(root, dir.name, 'module.json');
+  if (!fs.existsSync(mj)) continue;
+  let m; try { m = JSON.parse(fs.readFileSync(mj, 'utf8')); } catch { continue; }
+  if (!m.collection) continue;
+  const idir = path.join(root, dir.name, m.collection.dir || 'items');
+  if (!fs.existsSync(idir)) continue;
+  for (const f of fs.readdirSync(idir)) {
+    if (!f.endsWith('.md')) continue;
+    const name = `${dir.name}/${f}`;
+    const base = f.replace(/\.md$/, '');
+    if (!SLUG.test(base)) fail(name, 'tên file chỉ gồm chữ thường, số, dấu gạch ngang');
+    const fm = frontmatter(fs.readFileSync(path.join(idir, f), 'utf8'));
+    if (fm === null) { fail(name, 'thiếu khối --- ở đầu file'); continue; }
+    if (!/^title:\s*\S/m.test(fm)) fail(name, 'thiếu title');
+    if (!/^date:\s*\d{4}-\d{2}-\d{2}/m.test(fm)) fail(name, 'date phải dạng YYYY-MM-DD');
+    if (/DÁN LINK FILE VÀO ĐÂY/.test(fm) && !/^draft:\s*true/m.test(fm)) fail(name, 'còn dòng "DÁN LINK FILE VÀO ĐÂY": điền link thật hoặc đặt draft: true');
+    for (const u of fm.matchAll(/^\s*url:\s*["']?([^"'\n]+)["']?/gm)) {
+      const url = u[1].trim();
+      if (!/^(https:\/\/|\/)/.test(url) && !/DÁN LINK/.test(url)) fail(name, `link file phải bắt đầu bằng https:// hoặc "/": ${url}`);
+      if (url.startsWith('/') && !fs.existsSync(path.join('public', url.slice(1)))) fail(name, `không thấy file trong public/: ${url}`);
+    }
+  }
+}
+
 // Kiểm tra theme được chọn trong site.config.json
 try {
   const cfg = JSON.parse(fs.readFileSync('site.config.json', 'utf8'));

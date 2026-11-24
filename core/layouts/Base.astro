@@ -1,7 +1,12 @@
 ---
 import { getMenuModules, withBase } from '../lib/modules.js';
-import { site, getThemeCss } from '../lib/site.js';
-const { title = site.title } = Astro.props;
+import { site, getThemeCss, getThemeJs } from '../lib/site.js';
+const { title = site.title, description = site.tagline, image = '/og.png', noindex = false } = Astro.props;
+const fullTitle = title === site.title ? title : `${title} · ${site.title}`;
+const abs = (p) => new URL(p, Astro.site).href;
+const canonical = abs(Astro.url.pathname);
+const ogImage = abs(withBase(image));
+const themeJs = getThemeJs();
 const here = Astro.url.pathname.replace(/\/$/, '') || '/';
 const items = [
   { label: 'Trang chủ', href: withBase('/') },
@@ -15,7 +20,45 @@ const isHere = (href) => href.replace(/\/$/, '') === here || (href === withBase(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title === site.title ? title : `${title} · ${site.title}`}</title>
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#0d1440" />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="apple-touch-icon" href={withBase('/apple-touch-icon.png')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.title} />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <!-- Kiểu dự phòng cho các class của bộ sưu tập; độ ưu tiên thấp (:where) nên theme nào cũng ghi đè được -->
+    <style is:inline>{`
+      :where(.search-box){display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+      :where(.search-input){flex:1 1 240px;padding:10px 14px;font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:10px}
+      :where(.search-sort){padding:10px;font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:10px}
+      :where(.chip-row){display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+      :where(.chip){font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:999px;padding:4px 12px;cursor:pointer}
+      :where(.chip-active){font-weight:700;text-decoration:underline}
+      :where(.result-list){list-style:none;padding:0;margin:12px 0}
+      :where(.result-item){padding:12px 0;border-bottom:1px solid rgba(128,128,128,.35)}
+      :where(.result-title){font-weight:700;font-size:1.1rem}
+      :where(.result-summary){margin:4px 0}
+      :where(.result-meta){font-size:.88rem;opacity:.8}
+      :where(.tag){margin-left:6px;padding:1px 8px;border:1px solid currentColor;border-radius:999px;font:inherit;font-size:.8rem;color:inherit;background:transparent}
+      :where(button.tag){cursor:pointer}
+      :where(mark.mark){background:rgba(255,200,0,.45);color:inherit;border-radius:3px}
+      :where(.item-files){display:flex;flex-direction:column;gap:10px;margin:16px 0}
+      :where(.empty-note){opacity:.75}
+    `}</style>
     <style is:inline set:html={getThemeCss()}></style>
   </head>
   <body>
@@ -29,5 +72,6 @@ const isHere = (href) => href.replace(/\/$/, '') === here || (href === withBase(
     <footer class="site-footer">
       {site.title} · <a href={site.repo}>Góp ý trên GitHub</a>
     </footer>
+    {themeJs && <script is:inline set:html={themeJs}></script>}
   </body>
 </html>

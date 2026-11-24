@@ -5,5 +5,6 @@
   "route": "/archive",
   "entry": "content/index.md",
   "menu": { "label": "Lưu trữ", "order": 20 },
-  "summary": "Nơi lưu các bài viết và tài liệu cũ."
+  "summary": "Kho các dự án nhỏ và tài liệu: PowerPoint, thập cẩm các kiểu.",
+  "collection": { "dir": "items", "label": "mục" }
 }

@@ -1,0 +1,194 @@
+---
+// Danh sách có ô tìm kiếm từng chữ (không phân biệt dấu, chịu lỗi gõ nhẹ). Các class do theme tạo kiểu.
+import { withBase, fileUrl } from '../lib/modules.js';
+const { items, route, label = 'mục' } = Astro.props;
+const types = [...new Set(items.map((i) => i.type).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
+const first = items.slice(0, 24);
+const data = JSON.stringify({ items, route: withBase(route), label }).replace(/</g, '\\u003c');
+---
+<section class="collection" data-collection>
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder={`Tìm ${label} (gõ từng chữ, không cần đúng dấu)…`} aria-label={`Tìm ${label}`} autocomplete="off" data-search />
+    <select class="search-sort" aria-label="Sắp xếp" data-sort>
+      <option value="rel">Liên quan</option>
+      <option value="new">Mới nhất</option>
+      <option value="old">Cũ nhất</option>
+      <option value="az">A đến Z</option>
+    </select>
+  </div>
+  {types.length > 0 && (
+    <div class="chip-row" data-chips>
+      <button type="button" class="chip chip-active" data-type="">Tất cả</button>
+      {types.map((t) => <button type="button" class="chip" data-type={t}>{t}</button>)}
+    </div>
+  )}
+  <p class="result-count" data-count aria-live="polite">{items.length} {label}</p>
+  <ul class="result-list" data-results>
+    {first.map((i) => (
+      <li class="result-item">
+        <a class="result-title" href={withBase(`${route}/${i.id}`)}>{i.title}</a>
+        {i.summary && <p class="result-summary">{i.summary}</p>}
+        <div class="result-meta">{[i.type, i.date].filter(Boolean).join(' · ')}{i.tags.map((t) => <span class="tag">{t}</span>)}</div>
+      </li>
+    ))}
+  </ul>
+  {items.length === 0 && <p class="empty-note">Chưa có {label} nào. Sẽ có thêm sớm.</p>}
+  <p class="empty-note" data-empty hidden>Không tìm thấy kết quả nào. Thử bớt chữ hoặc đổi từ khóa.</p>
+  <button type="button" class="button button-secondary load-more" data-more hidden>Hiện thêm</button>
+  <noscript><p class="empty-note">Cần bật JavaScript để tìm kiếm và xem thêm.</p></noscript>
+  <script type="application/json" data-json set:html={data}></script>
+</section>
+<script>
+  const root = document.querySelector('[data-collection]');
+  if (root) {
+    const { items, route, label } = JSON.parse(root.querySelector('[data-json]').textContent);
+    const q = root.querySelector('[data-search]');
+    const sortEl = root.querySelector('[data-sort]');
+    const list = root.querySelector('[data-results]');
+    const countEl = root.querySelector('[data-count]');
+    const emptyEl = root.querySelector('[data-empty]');
+    const moreBtn = root.querySelector('[data-more]');
+    const chips = root.querySelectorAll('[data-type]');
+    const PAGE = 24;
+    let type = '', shown = PAGE, results = [];
+
+    // Bỏ dấu tiếng Việt, hạ chữ thường, ký tự lạ thành khoảng trắng; độ dài giữ nguyên để tô sáng đúng chỗ.
+    const norm = (s) => {
+      let out = '';
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        let b = (c === 'đ' || c === 'Đ') ? 'd' : c.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        b = (b || c).charAt(0).toLowerCase();
+        out += /[a-z0-9]/.test(b) ? b : ' ';
+      }
+      return out;
+    };
+    const lev = (a, b, max) => {
+      if (Math.abs(a.length - b.length) > max) return max + 1;
+      let prev = Array.from({ length: b.length + 1 }, (_, j) => j), prev2 = null;
+      for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        let min = i;
+        for (let j = 1; j <= b.length; j++) {
+          cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+          if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+          if (cur[j] < min) min = cur[j];
+        }
+        if (min > max) return max + 1;
+        prev2 = prev; prev = cur;
+      }
+      return prev[b.length];
+    };
+    const docs = items.map((it) => {
+      const d = {
+        it,
+        title: norm(it.title),
+        tags: it.tags.map(norm),
+        type: norm(it.type),
+        summary: norm(it.summary),
+      };
+      d.words = [...new Set([d.title, d.type, d.summary, ...d.tags].join(' ').split(' ').filter(Boolean))];
+      return d;
+    });
+    const hay = (h, t, wPrefix, wSub) => {
+      if (h.startsWith(t) || h.includes(' ' + t)) return wPrefix;
+      return h.includes(t) ? wSub : 0;
+    };
+    const scoreToken = (d, t) => {
+      let s = Math.max(
+        hay(d.title, t, 10, 6), hay(d.type, t, 8, 5), hay(d.summary, t, 4, 2),
+        ...d.tags.map((x) => hay(x, t, 8, 5))
+      );
+      if (!s && t.length >= 4) {
+        const max = t.length >= 8 ? 2 : 1;
+        for (const w of d.words) {
+          if (lev(t, w, max) <= max || (w.length > t.length && lev(t, w.slice(0, t.length), max) <= max)) { s = 1.5; break; }
+        }
+      }
+      return s;
+    };
+
+    const byDate = (x, y) => y.date.localeCompare(x.date);
+    const search = () => {
+      const tokens = norm(q.value).split(' ').filter(Boolean);
+      const mode = sortEl.value;
+      let out = docs.filter((d) => !type || d.it.type === type).map((d) => ({ d, total: 0 }));
+      if (tokens.length) {
+        out = out.map((x) => {
+          let total = 0;
+          for (const t of tokens) { const s = scoreToken(x.d, t); if (!s) return null; total += s; }
+          return { d: x.d, total };
+        }).filter(Boolean);
+      }
+      out.sort((a, b) => mode === 'old' ? -byDate(a.d.it, b.d.it)
+        : mode === 'az' ? a.d.it.title.localeCompare(b.d.it.title, 'vi')
+        : mode === 'new' ? byDate(a.d.it, b.d.it)
+        : (b.total - a.total) || byDate(a.d.it, b.d.it));            // "Liên quan": khớp nhiều nhất trước, rồi mới nhất
+      results = out.map((x) => x.d);
+      return tokens;
+    };
+
+    const highlight = (el, text, tokens) => {
+      const n = norm(text), mark = new Array(text.length).fill(false);
+      for (const t of tokens) { let i = n.indexOf(t); while (i >= 0) { for (let k = i; k < i + t.length; k++) mark[k] = true; i = n.indexOf(t, i + t.length); } }
+      let run = '', on = false;
+      const flush = () => { if (!run) return; if (on) { const m = document.createElement('mark'); m.className = 'mark'; m.textContent = run; el.appendChild(m); } else el.appendChild(document.createTextNode(run)); run = ''; };
+      for (let i = 0; i < text.length; i++) { if (mark[i] !== on) { flush(); on = mark[i]; } run += text[i]; }
+      flush();
+    };
+
+    const render = (tokens) => {
+      list.textContent = '';
+      for (const d of results.slice(0, shown)) {
+        const it = d.it;
+        const li = document.createElement('li'); li.className = 'result-item';
+        const a = document.createElement('a'); a.className = 'result-title'; a.href = `${route}/${it.id}`; highlight(a, it.title, tokens); li.appendChild(a);
+        if (it.summary) { const p = document.createElement('p'); p.className = 'result-summary'; highlight(p, it.summary, tokens); li.appendChild(p); }
+        const meta = document.createElement('div'); meta.className = 'result-meta';
+        meta.appendChild(document.createTextNode([it.type, it.date].filter(Boolean).join(' · ')));
+        for (const t of it.tags) {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'tag'; b.textContent = t;
+          b.addEventListener('click', () => { q.value = t; q.focus(); update(true); });
+          meta.appendChild(b);
+        }
+        li.appendChild(meta); list.appendChild(li);
+      }
+      const n = results.length;
+      countEl.textContent = tokens.length || type ? `${n} kết quả` : `${items.length} ${label}`;
+      emptyEl.hidden = !(items.length > 0 && n === 0);
+      moreBtn.hidden = n <= shown;
+    };
+
+    const saveUrl = () => {
+      try {
+        const u = new URL(location.href);
+        q.value ? u.searchParams.set('q', q.value) : u.searchParams.delete('q');
+        type ? u.searchParams.set('type', type) : u.searchParams.delete('type');
+        history.replaceState(null, '', u);
+      } catch (e) { /* bỏ qua */ }
+    };
+    let timer = null;
+    const update = (reset) => {
+      if (reset) shown = PAGE;
+      const tokens = search();
+      render(tokens);
+      saveUrl();
+    };
+    q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => update(true), 80); });
+    sortEl.addEventListener('change', () => update(true));
+    chips.forEach((c) => c.addEventListener('click', () => {
+      type = c.dataset.type;
+      chips.forEach((x) => x.classList.toggle('chip-active', x === c));
+      update(true);
+    }));
+    moreBtn.addEventListener('click', () => { shown += PAGE; render(search()); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); }
+    });
+    const params = new URLSearchParams(location.search);
+    q.value = params.get('q') || '';
+    const wantType = params.get('type') || '';
+    if (wantType) { const c = [...chips].find((x) => x.dataset.type === wantType); if (c) { type = wantType; chips.forEach((x) => x.classList.toggle('chip-active', x === c)); } }
+    update(true);
+  }
+</script>
