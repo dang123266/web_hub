@@ -4,13 +4,18 @@ import CollectionSearch from '../components/CollectionSearch.astro';
 import { getModules, getModulePages, getItems, plainItem, fileUrl, withBase } from '../lib/modules.js';
 
 export function getStaticPaths() {
+  // Mô-đun bật collection.direct: bấm vào mục là mở thẳng link đầu tiên trong files.
+  const withDirect = (i, m) => {
+    const u = m.collection?.direct && i.files?.[0]?.url;
+    return u ? { ...i, href: fileUrl(u), external: /^https?:/.test(u) } : i;
+  };
   const out = [];
   for (const m of getModules()) {
     const route = m.route.replace(/^\/|\/$/g, '');
     const items = m.collection ? getItems(m.dir) : [];
     for (const p of getModulePages(m.dir)) {
       const slug = p.file === 'index' ? route : `${route}/${p.file}`;
-      out.push({ params: { slug }, props: { kind: p.file === 'index' && m.collection ? 'collection' : 'page', page: p, mod: m, items: items.map(plainItem) } });
+      out.push({ params: { slug }, props: { kind: p.file === 'index' && m.collection ? 'collection' : 'page', page: p, mod: m, items: items.map((i) => withDirect(plainItem(i), m)) } });
     }
     for (const it of items) {
       out.push({ params: { slug: `${route}/${it.id}` }, props: { kind: 'item', item: it, mod: m } });

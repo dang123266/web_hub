@@ -6,5 +6,5 @@
   "entry": "content/index.md",
   "menu": { "label": "Link hay", "order": 25 },
   "summary": "Sưu tầm các dự án GitHub và trang web hay, có giới thiệu ngắn và tìm kiếm.",
-  "collection": { "dir": "items", "label": "link" }
+  "collection": { "dir": "items", "label": "link", "direct": true }
 }

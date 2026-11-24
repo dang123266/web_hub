@@ -26,7 +26,7 @@ const data = JSON.stringify({ items, route: withBase(route), label }).replace(/<
   <ul class="result-list" data-results>
     {first.map((i) => (
       <li class="result-item">
-        <a class="result-title" href={withBase(`${route}/${i.id}`)}>{i.title}</a>
+        <a class="result-title" href={i.href ?? withBase(`${route}/${i.id}`)} target={i.external ? '_blank' : undefined} rel={i.external ? 'noopener noreferrer' : undefined}>{i.title}</a>
         {i.summary && <p class="result-summary">{i.summary}</p>}
         <div class="result-meta">{[i.type, i.date].filter(Boolean).join(' · ')}{i.tags.map((t) => <span class="tag">{t}</span>)}</div>
       </li>
@@ -142,7 +142,7 @@ const data = JSON.stringify({ items, route: withBase(route), label }).replace(/<
       for (const d of results.slice(0, shown)) {
         const it = d.it;
         const li = document.createElement('li'); li.className = 'result-item';
-        const a = document.createElement('a'); a.className = 'result-title'; a.href = `${route}/${it.id}`; highlight(a, it.title, tokens); li.appendChild(a);
+        const a = document.createElement('a'); a.className = 'result-title'; a.href = it.href || `${route}/${it.id}`; if (it.external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; } highlight(a, it.title, tokens); li.appendChild(a);
         if (it.summary) { const p = document.createElement('p'); p.className = 'result-summary'; highlight(p, it.summary, tokens); li.appendChild(p); }
         const meta = document.createElement('div'); meta.className = 'result-meta';
         meta.appendChild(document.createTextNode([it.type, it.date].filter(Boolean).join(' · ')));
