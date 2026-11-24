@@ -6,7 +6,7 @@
 :root {
   /* --- Tùy chỉnh ảnh nền tại đây (để none nếu chỉ dùng nền gradient sáng) --- */
   /* Ví dụ chèn ảnh trong thư mục theme: url("./bg.jpg") hoặc link ảnh online */
-  --bg-image: url("./bg.webp");
+  --bg-image: url("https://raw.githubusercontent.com/<ten-github-cua-ban>/web_hub/main/themes/daylight-glass/bg.webp");
   --bg-overlay: linear-gradient(135deg, rgba(248, 250, 252, 0.86) 0%, rgba(238, 246, 255, 0.82) 50%, rgba(243, 240, 255, 0.86) 100%);
 
   /* --- Bảng màu sáng dịu --- */
