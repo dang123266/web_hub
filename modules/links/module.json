@@ -1,0 +1,10 @@
+{
+  "id": "links",
+  "name": "Link hay",
+  "version": "0.1.0",
+  "route": "/links",
+  "entry": "content/index.md",
+  "menu": { "label": "Link hay", "order": 25 },
+  "summary": "Sưu tầm các dự án GitHub và trang web hay, có giới thiệu ngắn và tìm kiếm.",
+  "collection": { "dir": "items", "label": "link" }
+}
