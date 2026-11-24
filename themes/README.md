@@ -28,3 +28,11 @@ Chỉ dùng cho hiệu ứng và tương tác trang trí (ví dụ khẩu pháo 
 - Phải chạy được khi tắt JavaScript: trang vẫn dùng bình thường chỉ với style.css.
 
 Theme không chứa nội dung trang; nếu cần đổi cấu trúc HTML, hỏi chủ dự án để sửa core.
+
+## Lớp CSS cho bộ sưu tập
+search-box, search-input, search-sort, chip-row, chip, chip-active, result-count, result-list, result-item,
+result-title, result-summary, result-meta, tag, mark, load-more, empty-note, item-back, item-files, item-sha.
+Theme thiếu các lớp này sẽ dùng CSS dự phòng trong Base.astro.
+
+## Quy tắc theme.js
+Hiệu ứng tương tác (như pháo) phải có công tắc tắt/bật và nhớ lựa chọn trong localStorage.

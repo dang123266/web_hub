@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import { withBase } from '../lib/modules.js';
+---
+<Base title="Không tìm thấy trang" description="Trang bạn tìm không tồn tại." noindex={true}>
+  <section class="hero">
+    <h1>404</h1>
+    <p>Trang này không tồn tại, hoặc đã bị bắn rụng mất.</p>
+  </section>
+  <p><a class="button" href={withBase('/')}>Về trang chủ</a></p>
+</Base>

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node scripts/check-modules.mjs && astro dev",
     "check": "node scripts/check-modules.mjs",
+    "new-item": "node scripts/new-item.mjs",
     "build": "node scripts/check-modules.mjs && astro build",
     "preview": "astro preview"
   },

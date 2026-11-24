@@ -99,8 +99,8 @@
   var reduce = !!(mq && mq('(prefers-reduced-motion: reduce)').matches);
   var canAnimate = typeof Element !== 'undefined' && !!Element.prototype.animate;
 
-  var ctx = null, audio = null, soundOn = true;
-  try { soundOn = localStorage.getItem('flakSound') !== 'off'; } catch (e) {}
+  var ctx = null, audio = null, soundOn = true, enabled = true;
+  try { soundOn = localStorage.getItem('flakSound') !== 'off'; enabled = localStorage.getItem('flakCannon') !== 'off'; } catch (e) {}
   function ensureAudio() {
     if (!AC) return null;
     try {
@@ -187,6 +187,7 @@
         '<button type="button" class="flak-surrender" id="fkSurrender" data-flak-ui>Đầu hàng <span class="flak-count" id="fkCount" data-n="0">0</span></button>' +
         '<button type="button" class="flak-sound" id="fkSound" data-flak-ui aria-label="Bật hoặc tắt âm thanh" aria-pressed="true" title="Âm thanh"></button>' +
       '</div>' +
+      '<button type="button" class="flak-power" id="fkPower" data-flak-ui>Tắt pháo</button>' +
     '</div>';
   document.body.appendChild(root);
 
@@ -198,7 +199,7 @@
   var $ = function (id) { return root.querySelector('#' + id); };
   var turret = $('fkTurret'), barrelG = $('fkBarrelG'), rodG = $('fkRecoilRod'), flashG = $('fkFlash');
   var svg = root.querySelector('svg'), hint = $('fkHint'), hintDefault = hint.innerHTML;
-  var countEl = $('fkCount'), surrenderBtn = $('fkSurrender'), soundBtn = $('fkSound');
+  var countEl = $('fkCount'), surrenderBtn = $('fkSurrender'), soundBtn = $('fkSound'), powerBtn = $('fkPower');
   var hintTimer = null;
 
   var ICON_ON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>';
@@ -336,6 +337,7 @@
     gone.push(t); setCount();
   }
   function fire(x, y) {
+    if (!enabled) return;
     var now = Date.now();
     if (now - lastFire < 220) return;
     lastFire = now;
@@ -369,10 +371,10 @@
   }
 
   /* ===================== SỰ KIỆN ===================== */
-  document.addEventListener('pointermove', function (e) { if (e.pointerType !== 'touch') aim(e.clientX, e.clientY); }, { passive: true });
-  document.addEventListener('pointerdown', function () { if (soundOn) ensureAudio(); }, { passive: true });   // trình duyệt chỉ cho phát tiếng sau thao tác của người dùng
+  document.addEventListener('pointermove', function (e) { if (enabled && e.pointerType !== 'touch') aim(e.clientX, e.clientY); }, { passive: true });
+  document.addEventListener('pointerdown', function () { if (enabled && soundOn) ensureAudio(); }, { passive: true });   // trình duyệt chỉ cho phát tiếng sau thao tác của người dùng
   document.addEventListener('contextmenu', function (e) {
-    if (e.shiftKey) return;                                  // Shift + chuột phải: menu bình thường
+    if (!enabled || e.shiftKey) return;           // pháo tắt hoặc Shift + chuột phải: menu bình thường                                  // Shift + chuột phải: menu bình thường
     if (e.target.closest && e.target.closest('[data-flak-ui]')) return;
     e.preventDefault();
     fire(e.clientX, e.clientY);
@@ -384,6 +386,19 @@
     drawSound();
     if (soundOn) { ensureAudio(); play('chime'); }
   });
+  function setEnabled(on, silent) {
+    enabled = on;
+    root.classList.toggle('flak-off', !on);
+    powerBtn.textContent = on ? 'Tắt pháo' : 'Bật pháo';
+    powerBtn.setAttribute('aria-pressed', on ? 'false' : 'true');
+    try { localStorage.setItem('flakCannon', on ? 'on' : 'off'); } catch (e) {}
+    if (!on) {
+      gone.forEach(function (e) { e.classList.remove('flak-gone', 'flak-back'); });   // tắt pháo thì trả lại mọi nút
+      gone = []; setCount(); fx.textContent = '';
+    } else if (!silent) { showHint(hintDefault, 6000); }
+  }
+  powerBtn.addEventListener('click', function () { setEnabled(!enabled); });
+  setEnabled(enabled, true);
   drawSound(); setCount(); aim(window.innerWidth * 0.6, window.innerHeight * 0.3);
   showHint(hintDefault, 8000);
 })();

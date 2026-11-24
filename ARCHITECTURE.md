@@ -42,3 +42,8 @@ Sao chép `modules/MODULE_TEMPLATE` thành `modules/<id>`, sửa nội dung, ch�
 
 ## Muốn đổi hợp đồng hoặc core
 Dừng lại, hỏi chủ dự án, rồi cập nhật tài liệu gốc cùng file này.
+
+## Bộ sưu tập (collection)
+Mô-đun có `"collection": {"dir":"items","label":"mục"}` trong module.json sẽ có trang chỉ mục kèm thanh tìm kiếm
+(không dấu, từng chữ, chịu lỗi gõ) và trang riêng `route/<id>` cho mỗi `items/*.md`. Xem `modules/archive/README.md`.
+`npm run check` kiểm tra mục (tên file, ngày, link). Head SEO/Open Graph nằm ở `core/layouts/Base.astro`.
