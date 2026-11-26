@@ -496,7 +496,7 @@ canvas.drag { cursor: grabbing; }
     var wave = function (x, z) { return .04 * (1 - x * x / 3.6 - z * z / .9) + .008 * Math.sin(5 * x + 3 * z); };
     for (var L = 0; L < 5; L++) {
       var y = L * .05, k = 1 - L * .014, h = 0, i = 1;
-      while (h < K(11000)) { var x = (hal(i, 2) * 2 - 1) * 1.9 * k, z = (hal(i, 3) * 2 - 1) * .95 * k; i++; if (inside(x / k, z / k)) { sh.pt(x, y + wave(x, z), z, .8, SILVER); h++; } }
+      while (h < K(5000)) { var x = (hal(i, 2) * 2 - 1) * 1.9 * k, z = (hal(i, 3) * 2 - 1) * .95 * k; i++; if (inside(x / k, z / k)) { sh.pt(x, y + wave(x, z), z, .8, SILVER); h++; } }
       for (var e = 0; e < 6; e++) { var a0 = P[e], b0 = P[(e + 1) % 6]; line([k * a0[0], y + wave(k * a0[0], k * a0[1]), k * a0[1]], [k * b0[0], y + wave(k * b0[0], k * b0[1]), k * b0[1]], K(220), COLS.white, 1.3); }
     }
     [[1.9, 0], [-1.9, 0], [0, .95], [0, -.95]].forEach(function (p) { line([p[0] * .94, .02, p[1] * .94], [p[0] * 1.1, .02, p[1] * 1.1], K(30), GRAY, 1.3); });   // thanh căng
@@ -517,9 +517,9 @@ canvas.drag { cursor: grabbing; }
       sub(sh, function (v) { return [v[0], v[1], v[2] + .1 * (v[0] * v[0] + v[1] * v[1])]; }, function () {   // mặt gương hơi lõm
         cs.forEach(function (c) {
           var V = []; for (var q = 0; q < 6; q++) { var an = Math.PI / 6 + q * Math.PI / 3; V.push([c[0] + s * .97 * Math.cos(an), c[1] + s * .97 * Math.sin(an), 0]); }
-          for (var i2 = 0; i2 < K(1800); i2++) {
+          for (var i2 = 0; i2 < K(3600); i2++) {
             var t = (i2 % 3) * 2, j2 = Math.floor(i2 / 3) + 1, u = hal(j2, 2), v = hal(j2, 3);   // sáu cạnh chia thành ba hình thoi, mỗi hình rải đều
-            sh.pt(c[0] + (V[t][0] - c[0]) * u + (V[(t + 2) % 6][0] - c[0]) * v, c[1] + (V[t][1] - c[1]) * u + (V[(t + 2) % 6][1] - c[1]) * v, 0, .85, GOLD);
+            sh.pt(c[0] + (V[t][0] - c[0]) * u + (V[(t + 2) % 6][0] - c[0]) * v, c[1] + (V[t][1] - c[1]) * u + (V[(t + 2) % 6][1] - c[1]) * v, 0, 1.05, GOLD);
           }
           for (var e = 0; e < 6; e++) line(V[e], V[(e + 1) % 6], K(18), COLS.hot, 1.2);                  // viền từng mảnh gương
         });
@@ -577,30 +577,33 @@ canvas.drag { cursor: grabbing; }
   function blackhole() {
     var sh = new Shape(), RIN = .85, ROUT = 3.0, RS = .54;
     var heat = function (r) { var f = Math.min(1, (r - RIN) / (ROUT - RIN)); return f < .08 ? [.9, .95, 1] : f < .22 ? [1, .97, .82] : f < .45 ? [1, .8, .45] : f < .7 ? [1, .55, .24] : [.8, .26, .13]; };
-    var diskW = function (r) { return .5 * Math.pow(.95 / r, 1.5); };
+    var diskW = function (r) { return .9 * Math.pow(.95 / r, 1.5); };
     // 1. đĩa bồi tụ mỏng: mật độ ~ 1/r, nhánh xoắn và vân gợn, quay Kepler (vòng trong nhanh nhất); nóng ở trong, nguội ở ngoài
-    for (var i = 0, n = K(50000); i < n;) {
+    for (var i = 0, n = K(12000); i < n;) {
       var r = RIN * Math.pow(ROUT / RIN, Math.random()), t = R(0, TAU);
       if (Math.random() > (.45 + .55 * Math.cos(3 * (t + 1.5 * Math.log(r)))) * (.78 + .22 * Math.sin(r * 38))) continue;
       i++; sh.M = [diskW(r), 0, 1, 0, 0, 0, 0, 2];
-      sh.pt(r * Math.cos(t), G2() * (.006 + .018 * r), r * Math.sin(t), R(.5, 1.5) * (1 + .5 / r), heat(r));
+      sh.pt(r * Math.cos(t), G2() * (.006 + .018 * r), r * Math.sin(t), R(.5, 1.1) * (1 + .4 / r), heat(r));
     }
     // 2. ảnh méo của đĩa: nửa đĩa phía sau bị uốn vòng qua đỉnh và đáy bóng tối; luôn quay mặt về người xem
     //    bán kính ảnh b = RS + (r - RIN) * (0,2 + 0,8 cos^2 psi): thu hẹp ở đỉnh, mở rộng tới mép đĩa ở xích đạo
-    for (var j = 0; j < K(42000); j++) {
+    for (var j = 0; j < K(14000); j++) {
       var rr = RIN * Math.pow(ROUT / RIN, Math.pow(Math.random(), 1.3)), ps = R(0, TAU), c = Math.cos(ps), bb = RS + (rr - RIN) * (.2 + .8 * c * c);
       sh.M = [diskW(rr) * .8, rr, 9, 0, 0, 0, 0, 1];
       sh.pt(bb * c, bb * Math.sin(ps), 0, R(.8, 1.9) * (1.4 - .3 * rr), heat(rr));
     }
     // vành photon: một đường sáng mảnh ngay sát bóng tối
-    for (var k = 0; k < K(7000); k++) { var t2 = R(0, TAU), rp = RS + .006 + G2() * .006; sh.M = [.4 + .2 * Math.random(), 0, 7, 0, 0, 0, 0, 1]; sh.pt(rp * Math.cos(t2), rp * Math.sin(t2), 0, R(.7, 1.5), Math.random() < .5 ? COLS.white : [1, .92, .7]); }
-    for (var h = 0; h < K(2400); h++) { var t3 = R(0, TAU), r3 = R(.52, 1.4); sh.M = [.15, 0, 7, 0, 0, 0, 0, 1]; sh.pt(r3 * Math.cos(t3), r3 * Math.sin(t3), 0, R(4, 8), [.3, .15, .06]); }
-    // 3. hạt đa màu bị kéo dãn, xoắn ốc rơi vào chân trời sự kiện rồi tái sinh ở ngoài
-    var PAL = [[.35, .8, 1], [1, .4, .85], [1, .85, .4], [.95, .97, 1], [1, .55, .25], [.65, .5, 1]];
-    for (var q = 0; q < K(15000); q++) {
-      var ro = R(2.2, 3.9), tau = Math.random(), r0 = .6 + (ro - .6) * Math.pow(1 - tau, 1.7), th = R(0, TAU), yf = G2() * .2;
-      sh.M = [R(.05, .11), ro, 5, tau, 0, 0, 0, 2];
-      sh.pt(r0 * Math.cos(th), yf * r0, r0 * Math.sin(th), R(.7, 1.6), PAL[Math.floor(Math.random() * PAL.length)]);
+    for (var k = 0; k < K(5000); k++) { var t2 = R(0, TAU), rp = RS + .006 + G2() * .006; sh.M = [.4 + .2 * Math.random(), 0, 7, 0, 0, 0, 0, 1]; sh.pt(rp * Math.cos(t2), rp * Math.sin(t2), 0, R(.7, 1.5), Math.random() < .5 ? COLS.white : [1, .92, .7]); }
+    for (var h = 0; h < 0; h++) { var t3 = R(0, TAU), r3 = R(.52, 1.4); sh.M = [.15, 0, 7, 0, 0, 0, 0, 1]; sh.pt(r3 * Math.cos(t3), r3 * Math.sin(t3), 0, R(4, 8), [.3, .15, .06]); }
+    // 3. dòng hạt đa màu: các sợi xoắn ốc bị kéo thành dải dài mịn, chảy vào chân trời sự kiện rồi tái sinh ở ngoài
+    var STR = [[.35, .8, 1], [1, .4, .85], [1, .85, .4], [.95, .97, 1], [1, .55, .25], [.65, .5, 1]];
+    for (var s = 0; s < 60; s++) {
+      var ths = R(0, TAU), ro = R(2.2, 3.2), yf = G2() * .16, sp = R(.05, .1), c0 = STR[s % STR.length];
+      for (var q = 0; q < K(1000); q++) {
+        var tau = (q + Math.random()) / K(1000), r0 = .6 + (ro - .6) * Math.pow(1 - tau, 1.7), th = ths - .55 * Math.pow(ro / r0, 1.25) + G2() * .004, f = Math.max(0, 1 - tau * 2.4), rr = r0 + G2() * .003 * ro;
+        sh.M = [sp, ro, 5, tau, 0, 0, 0, 3];
+        sh.pt(rr * Math.cos(th), (yf + G2() * .002) * r0, rr * Math.sin(th), R(1.7, 2.2), [c0[0] + (1 - c0[0]) * f, c0[1] + (.95 - c0[1]) * f, c0[2] + (.85 - c0[2]) * f]);
+      }
     }
     // 4. vài vòng dẫn hướng mờ trong mặt phẳng đĩa
     sh.M = null; [1.3, 2.0, 2.7].forEach(function (rr) { circleY(sh, rr, 120); });
@@ -724,7 +727,7 @@ canvas.drag { cursor: grabbing; }
     { fn: iss, n: 200000, file: "iss.js", name: "Trạm vũ trụ quốc tế (ISS)", sub: "Dài khoảng 109 m, bay ở độ cao khoảng 400 km, mỗi ngày quay quanh Trái Đất khoảng 16 vòng", tint: "#08172b", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(iss); } },
     { fn: starship, n: 200000, file: "starship.js", name: "Starship và Super Heavy", sub: "Cao khoảng 121 m, đường kính 9 m, bộ tên lửa tái sử dụng hoàn toàn của SpaceX", tint: "#10151f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(starship); } },
     { fn: saturnV, n: 200000, file: "saturn_v.js", name: "Saturn V", sub: "Cao 110,6 m, đưa người Mỹ lên Mặt Trăng trong chương trình Apollo", tint: "#18130f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(saturnV); } },
-    { fn: jwst, n: 150000, calm: 1, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: [.84, .87, .94], build: function () { return dbl(jwst); } },
+    { fn: jwst, n: 200000, calm: 1, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: [.84, .87, .94], build: function () { return dbl(jwst); } },
     { fn: galaxy, n: 200000, file: "galaxy.js", name: "Thiên hà xoắn ốc", sub: "Bốn cánh tay xoắn ốc quanh nhân sáng, giống dải Ngân Hà của chúng ta", tint: "#150b24", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(galaxy); } },
     { fn: blackhole, n: 200000, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.45, .05], lc: [1, .6, .25], build: function () { return dbl(blackhole); } },
     { fn: sputnik, n: 100000, file: "sputnik.js", name: "Sputnik 1", sub: "Vệ tinh nhân tạo đầu tiên, phóng năm 1957, hình cầu rộng khoảng 58 cm", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(sputnik); } },
@@ -806,8 +809,8 @@ canvas.drag { cursor: grabbing; }
     " if(k<2.5){vec3 q=rotX(p-P.xyz,M.y*t)+P.xyz;return rotY(q,M.x*t);}",
     " if(k<3.5)return rotAx(p,normalize(P.xyz),M.x*t);",
     " if(k<5.5){float ro=M.y,tau=fract(M.w+M.x*t),rr=infR(tau,ro),r0=infR(M.w,ro);",
-    "  float th=atan(p.z,p.x)-.55*(pow(ro/rr,1.25)-pow(ro/r0,1.25));float yf=p.y/max(length(p.xz),.01);",
-    "  fade=smoothstep(INR,INR+.16,rr)*smoothstep(0.,.05,tau);return vec3(rr*cos(th),yf*rr,rr*sin(th));}",
+    "  float th=atan(p.z,p.x)-.55*(pow(ro/rr,1.25)-pow(ro/r0,1.25));float yf=p.y/max(length(p.xz),.01);float dr=length(p.xz)-r0,r2=rr+dr*rr/r0;",
+    "  fade=smoothstep(INR,INR+.16,rr)*smoothstep(0.,.05,tau);return vec3(r2*cos(th),yf*r2,r2*sin(th));}",
     " if(k<6.5){float s=fract(M.y+M.x*t);fade=pow(1.-s,1.4)*smoothstep(0.,.04,s);return p+P.xyz*((s-M.y)*M.w);}",
     " if(k<7.5){float c=cos(M.x*t),s=sin(M.x*t);return vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);}",
     " if(k<8.5){float s=fract(M.y+M.x*t);fade=pow(1.-s,1.3)*smoothstep(0.,.06,s);float Rn=P.x+s*P.y;return p*(Rn/max(length(p),.001));}",
@@ -841,20 +844,20 @@ canvas.drag { cursor: grabbing; }
       GLM,
       "void main(){float m=clamp((uMix-aR*.45)/.55,0.,1.);m=m*m*(3.-2.*m);float sw=sin(3.14159*m);",
       " float fa,fb,f2;vec3 pa=place(aA,aMA,aPA,uTA,uMT,fa),pb=place(aB,aMB,aPB,uTB,uMT,fb);vec3 p=mix(pa,pb,m);",
-      " float sA=step(4.5,aMA.z)*step(aMA.z,5.5),sB=step(4.5,aMB.z)*step(aMB.z,5.5),sM=mix(sA,sB,m);vec3 dp=vec3(0.);",
-      " if(sA+sB>.5){vec3 qa=place(aA,aMA,aPA,uTA,uMT+.08,f2),qb=place(aB,aMB,aPB,uTB,uMT+.08,f2);dp=mix((qa-pa)*sA,(qb-pb)*sB,m);}",
+      " float sA=max(step(4.5,aMA.z)*step(aMA.z,5.5),step(.5,aMA.z)*step(aMA.z,1.5)*step(1.5,aPA.w)*step(aPA.w,2.5)),sB=max(step(4.5,aMB.z)*step(aMB.z,5.5),step(.5,aMB.z)*step(aMB.z,1.5)*step(1.5,aPB.w)*step(aPB.w,2.5)),sM=mix(sA,sB,m);vec3 dp=vec3(0.);",
+      " if(sA+sB>.5){vec3 qa=place(aA,aMA,aPA,uTA,uMT+.5,f2),qb=place(aB,aMB,aPB,uTB,uMT+.5,f2);dp=mix((qa-pa)*sA,(qb-pb)*sB,m);}",
       " p+=vec3(sin(aR*61.+uTime*1.7),cos(aR*43.+uTime*1.3),sin(aR*29.-uTime*1.5))*sw*.55;",
       " float cm=mix(uKA,uKB,m);p+=vec3(sin(uTime*.9+aR*91.),cos(uTime*.8+aR*57.),sin(uTime*1.1+aR*33.))*.004*(1.-cm);p*=1.+mix(uHA,uHB,m)*uBeat*.085;",
       "",
-      " float occ=mix(step(1.5,aPA.w)*step(aPA.w,2.5),step(1.5,aPB.w)*step(aPB.w,2.5),m);",
-      " vec3 vv=(modelViewMatrix*vec4(vec3(p.z,0.,-p.x),0.)).xyz;float dop=clamp(vv.z/(length(vv)+1e-4),-1.,1.)*occ;",
+      " float occ=mix(step(1.5,aPA.w),step(1.5,aPB.w),m),dpf=mix(step(1.5,aPA.w)*step(aPA.w,2.5),step(1.5,aPB.w)*step(aPB.w,2.5),m);",
+      " vec3 vv=(modelViewMatrix*vec4(vec3(p.z,0.,-p.x),0.)).xyz;float dop=clamp(vv.z/(length(vv)+1e-4),-1.,1.)*dpf;",
       " vec4 mv=modelViewMatrix*vec4(p,1.);vec3 cv=(modelViewMatrix*vec4(0.,0.,0.,1.)).xyz;float sc=length(modelViewMatrix[0].xyz);",
       " float dist=length(mv.xy/mv.z-cv.xy/cv.z)*-cv.z;",
       " dop+=mix(step(.5,aPA.w)*step(aPA.w,1.5),step(.5,aPB.w)*step(aPB.w,1.5),m)*step(8.5,mix(aMA.z,aMB.z,m))*clamp(-(mv.x-cv.x)/(.9*sc),-1.,1.);",
       " float vis=1.-occ*step(mv.z,cv.z)*(1.-smoothstep(uShadow*sc*.96,uShadow*sc*1.05,dist));",
       " vec4 S=mix(aSA,aSB,m);vCol=S.yzw*vec3(1.-.2*dop,1.-.04*dop,1.+.3*dop)*(1.+.6*dop);",
       " vAl=mix(.8+.12*sin(uTime*2.2+aR*140.),.95,cm)*vis*mix(1.,mix(fa,fb,m),uMon);",
-      " vec2 vd=(modelViewMatrix*vec4(dp,0.)).xy;float vl=length(vd);vSt=vec3(vl>1e-5?vd/vl:vec2(1.,0.),clamp(vl*16.,0.,3.4)*uMon*sM);",
+      " vec2 vd=(modelViewMatrix*vec4(dp,0.)).xy;float vl=length(vd);vSt=vec3(vl>1e-5?vd/vl:vec2(1.,0.),clamp(vl*3.,0.,4.5)*sM);",
       " gl_PointSize=S.x*uPx*(1.+sw*.5+mix(uHA,uHB,m)*uBeat*.7)*(4.8/-mv.z)*1.5*(1.+vSt.z*.7);gl_Position=projectionMatrix*mv;}"
     ].join("\n"),
     fragmentShader: [
@@ -1163,5 +1166,4 @@ canvas.drag { cursor: grabbing; }
   requestAnimationFrame(frame);
 })();
 </script>
-
 </html>
