@@ -484,57 +484,53 @@ canvas.drag { cursor: grabbing; }
   }
   function jwst() {
     var sh = new Shape(); sh.T = function (v) { return rotXZ(rotY(v, -.6), .42, 0); };
-    // chỉ dùng hạt, không dùng đường kẻ: mặt phẳng, thanh và khung đều là hạt dày
-    var rod = function (a, b, n, col, size) { for (var i = 0; i < n; i++) { var t = Math.random(); sh.pt(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, size || R(.9, 1.5), col); } };
-    var panel = function (o, a, b, n, col, size) { for (var i = 0; i < n; i++) { var u = Math.random(), v = Math.random(); sh.pt(o[0] + a[0] * u + b[0] * v, o[1] + a[1] * u + b[1] * v, o[2] + a[2] * u + b[2] * v, size || R(.6, 1.2), col); } };
-    var steel = [.62, .7, .82], slate = [.3, .35, .46];
-    // 1. tấm chắn nắng 5 lớp hình diều (21 x 14 m): lớp dưới hướng Mặt Trời nóng nhất, các lớp trên nguội dần
+    var SILVER = [.84, .87, .94], GOLD = [1, .79, .34], GRAY = [.58, .62, .7], SOLAR = [.33, .44, .78];   // bốn màu thật của kính
+    // Halton: rải điểm đều trên mặt, không vón cục nên không bị nhiễu hạt
+    var hal = function (i, b) { var f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
+    var hc = 0;
+    var panel = function (o, a, b, n, col) { for (var i = 0; i < n; i++, hc++) { var u = hal(hc + 1, 2), v = hal(hc + 1, 3); sh.pt(o[0] + a[0] * u + b[0] * v, o[1] + a[1] * u + b[1] * v, o[2] + a[2] * u + b[2] * v, .85, col); } };
+    var line = function (a, b, n, col, size) { for (var i = 0; i <= n; i++) { var t = i / n; sh.pt(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, size || 1.1, col); } sh.seg(a, b); };   // viền: hạt đều tay + đường kẻ
+    // 1. tấm chắn nắng 5 lớp hình diều (21 x 14 m), viền sáng đủ cả sáu cạnh
     var P = [[-1.9, 0], [-.65, .95], [.65, .95], [1.9, 0], [.65, -.95], [-.65, -.95]];
-    var LAYER = [[1, .68, .52], [.98, .64, .84], [.8, .68, 1], [.68, .78, 1], [.62, .9, 1]];
+    var inside = function (x, z) { var s = 1.9 - Math.abs(x); return Math.abs(z) <= (Math.abs(x) < .65 ? .95 : .95 * s / 1.25); };
     var wave = function (x, z) { return .04 * (1 - x * x / 3.6 - z * z / .9) + .008 * Math.sin(5 * x + 3 * z); };
     for (var L = 0; L < 5; L++) {
-      var y = L * .05, k = 1 - L * .014, col = LAYER[L];
-      for (var i = 0; i < K(9000); i++) {
-        var t = Math.floor(Math.random() * 6), A = P[t], B = P[(t + 1) % 6], u = Math.random(), v = Math.random(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
-        var x = k * (A[0] * u + B[0] * v), z = k * (A[1] * u + B[1] * v); sh.pt(x, y + wave(x, z), z, R(.6, 1.2), col);
-      }
-      for (var e = 0; e < 6; e++) {                                                          // mép sáng đều cả sáu cạnh
-        var a0 = P[e], b0 = P[(e + 1) % 6];
-        for (var n = 0; n < K(260); n++) { var f = Math.random(), ex = k * (a0[0] + (b0[0] - a0[0]) * f), ez = k * (a0[1] + (b0[1] - a0[1]) * f); sh.pt(ex, y + wave(ex, ez), ez, R(1, 1.8), COLS.white); }
-      }
+      var y = L * .05, k = 1 - L * .014, h = 0, i = 1;
+      while (h < K(11000)) { var x = (hal(i, 2) * 2 - 1) * 1.9 * k, z = (hal(i, 3) * 2 - 1) * .95 * k; i++; if (inside(x / k, z / k)) { sh.pt(x, y + wave(x, z), z, .8, SILVER); h++; } }
+      for (var e = 0; e < 6; e++) { var a0 = P[e], b0 = P[(e + 1) % 6]; line([k * a0[0], y + wave(k * a0[0], k * a0[1]), k * a0[1]], [k * b0[0], y + wave(k * b0[0], k * b0[1]), k * b0[1]], K(220), COLS.white, 1.3); }
     }
-    [[1.9, 0], [-1.9, 0], [0, .95], [0, -.95]].forEach(function (p) { rod([p[0] * .94, .02, p[1] * .94], [p[0] * 1.1, .02, p[1] * 1.1], K(60), steel, 1.3); });   // thanh căng
+    [[1.9, 0], [-1.9, 0], [0, .95], [0, -.95]].forEach(function (p) { line([p[0] * .94, .02, p[1] * .94], [p[0] * 1.1, .02, p[1] * 1.1], K(30), GRAY, 1.3); });   // thanh căng
     // 2. tháp nối, xuyên qua tâm các lớp chắn nắng
-    for (var h = 0; h < K(3200); h++) { var th = R(0, TAU); sh.pt(.07 * Math.cos(th), R(-.5, .5), .07 * Math.sin(th), R(.8, 1.3), steel); }
-    // 3. thân vệ tinh phía nóng: hộp, tấm pin mặt trời, ăng-ten, cánh cân bằng
-    panel([-.34, -.56, -.26], [.68, 0, 0], [0, 0, .52], K(1500), slate); panel([-.34, -.26, -.26], [.68, 0, 0], [0, 0, .52], K(1500), steel);
-    panel([-.34, -.56, -.26], [.68, 0, 0], [0, .3, 0], K(1000), steel); panel([-.34, -.56, .26], [.68, 0, 0], [0, .3, 0], K(1000), steel);
-    panel([-.34, -.56, -.26], [0, 0, .52], [0, .3, 0], K(800), steel); panel([.34, -.56, -.26], [0, 0, .52], [0, .3, 0], K(800), steel);
-    panel([.36, -.42, -.3], [.8, 0, 0], [0, 0, .6], K(3600), [.35, .5, 1]);
-    panel([.36, -.42, -.3], [.8, 0, 0], [0, 0, .06], K(300), COLS.gold);
-    for (var d = 0; d < K(500); d++) { var dt = R(0, TAU), dr = Math.sqrt(Math.random()) * .12; sh.pt(-.12 + dr * Math.cos(dt), -.6, dr * Math.sin(dt), R(1, 1.8), COLS.white); }
-    rod([0, -.4, -.26], [0, -.4, -.75], K(120), steel); panel([-.02, -.2, -.85], [.04, 0, 0], [0, -.4, .2], K(500), COLS.amber);
-    // 4. kính: gương chính 18 mảnh lục giác mạ vàng, lưng gương, ba thanh đỡ gương phụ
+    for (var j = 0; j < K(2800); j++) { var th = hal(j + 1, 2) * TAU; sh.pt(.07 * Math.cos(th), -.5 + hal(j + 1, 3), .07 * Math.sin(th), .85, GRAY); }
+    // 3. thân vệ tinh phía nóng, tấm pin mặt trời, ăng-ten, cánh cân bằng
+    var B = [-.34, -.56, -.26], bw = [.68, 0, 0], bh = [0, .3, 0], bd = [0, 0, .52];
+    panel(B, bw, bd, K(1400), GRAY); panel([B[0], B[1] + .3, B[2]], bw, bd, K(1400), GRAY);
+    panel(B, bw, bh, K(900), GRAY); panel([B[0], B[1], B[2] + .52], bw, bh, K(900), GRAY); panel(B, bd, bh, K(700), GRAY); panel([B[0] + .68, B[1], B[2]], bd, bh, K(700), GRAY);
+    panel([.36, -.42, -.3], [.8, 0, 0], [0, 0, .6], K(3200), SOLAR);
+    for (var d = 0; d < K(500); d++) { var dr = Math.sqrt(hal(d + 1, 2)) * .12, dt = hal(d + 1, 3) * TAU; sh.pt(-.12 + dr * Math.cos(dt), -.6, dr * Math.sin(dt), .9, SILVER); }
+    line([0, -.4, -.26], [0, -.4, -.75], K(100), GRAY); panel([-.02, -.2, -.85], [.04, 0, 0], [0, -.4, .2], K(500), GRAY);
+    // 4. kính: gương chính 18 mảnh lục giác mạ vàng hơi lõm, lưng gương, ba thanh đỡ gương phụ
     sub(sh, function (v) { var w = rotXZ(v, -1.31, 0); return [w[0], w[1] + .56, w[2] + .05]; }, function () {
-      var s = .15, d2 = Math.sqrt(3) * s * 1.025, cs = [], gold = function () { return Math.random() < .55 ? COLS.gold : COLS.hot; };
+      var s = .15, d2 = Math.sqrt(3) * s * 1.025, cs = [];
       for (var k2 = 0; k2 < 6; k2++) { var a2 = k2 * Math.PI / 3; cs.push([d2 * Math.cos(a2), d2 * Math.sin(a2)]); }
       for (var k3 = 0; k3 < 6; k3++) { var a3 = k3 * Math.PI / 3; cs.push([2 * d2 * Math.cos(a3), 2 * d2 * Math.sin(a3)]); cs.push([Math.sqrt(3) * d2 * Math.cos(a3 + Math.PI / 6), Math.sqrt(3) * d2 * Math.sin(a3 + Math.PI / 6)]); }
       sub(sh, function (v) { return [v[0], v[1], v[2] + .1 * (v[0] * v[0] + v[1] * v[1])]; }, function () {   // mặt gương hơi lõm
         cs.forEach(function (c) {
-          for (var i = 0; i < K(1500); i++) {
-            var t = Math.floor(Math.random() * 6), a = Math.PI / 6 + t * Math.PI / 3, b = a + Math.PI / 3, u = Math.random(), v = Math.random(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
-            sh.pt(c[0] + s * .96 * (Math.cos(a) * u + Math.cos(b) * v), c[1] + s * .96 * (Math.sin(a) * u + Math.sin(b) * v), 0, R(.7, 1.3), gold());
+          var V = []; for (var q = 0; q < 6; q++) { var an = Math.PI / 6 + q * Math.PI / 3; V.push([c[0] + s * .97 * Math.cos(an), c[1] + s * .97 * Math.sin(an), 0]); }
+          for (var i2 = 0; i2 < K(1800); i2++) {
+            var t = (i2 % 3) * 2, j2 = Math.floor(i2 / 3) + 1, u = hal(j2, 2), v = hal(j2, 3);   // sáu cạnh chia thành ba hình thoi, mỗi hình rải đều
+            sh.pt(c[0] + (V[t][0] - c[0]) * u + (V[(t + 2) % 6][0] - c[0]) * v, c[1] + (V[t][1] - c[1]) * u + (V[(t + 2) % 6][1] - c[1]) * v, 0, .85, GOLD);
           }
-          for (var e = 0; e < 6; e++) { var ea = Math.PI / 6 + e * Math.PI / 3, eb = ea + Math.PI / 3; rod([c[0] + s * .96 * Math.cos(ea), c[1] + s * .96 * Math.sin(ea), 0], [c[0] + s * .96 * Math.cos(eb), c[1] + s * .96 * Math.sin(eb), 0], K(16), COLS.white, 1.2); }
+          for (var e = 0; e < 6; e++) line(V[e], V[(e + 1) % 6], K(18), COLS.hot, 1.2);                  // viền từng mảnh gương
         });
       });
-      panel([-.7, -.78, -.12], [1.4, 0, 0], [0, 1.56, 0], K(4500), slate);                         // lưng gương và hai cánh gập
-      rod([-.7, -.78, -.12], [.7, -.78, -.12], K(120), steel); rod([-.7, .78, -.12], [.7, .78, -.12], K(120), steel);
-      rod([-.7, -.78, -.12], [-.7, .78, -.12], K(120), steel); rod([.7, -.78, -.12], [.7, .78, -.12], K(120), steel);
-      panel([-.3, -.45, -.5], [.6, 0, 0], [0, .9, 0], K(1500), [.4, .45, .58]);                      // khối thiết bị khoa học phía sau
-      panel([-.3, -.45, -.12], [0, 0, -.38], [0, .9, 0], K(500), steel); panel([.3, -.45, -.12], [0, 0, -.38], [0, .9, 0], K(500), steel);
-      [Math.PI / 2, Math.PI / 2 + TAU / 3, Math.PI / 2 + 2 * TAU / 3].forEach(function (an) { rod([.6 * Math.cos(an), .6 * Math.sin(an), .06], [0, 0, 1.3], K(260), steel, 1.1); });   // ba thanh đỡ gương phụ
-      for (var q = 0; q < K(700); q++) { var tt = R(0, TAU), rr = Math.sqrt(Math.random()) * .07; sh.pt(rr * Math.cos(tt), rr * Math.sin(tt), 1.3, R(1, 2), COLS.gold); }
+      var fx = .7, fy = .78;                                                                           // khung lưng gương
+      panel([-fx, -fy, -.12], [2 * fx, 0, 0], [0, 2 * fy, 0], K(4000), GRAY);
+      [[-fx, -fy, fx, -fy], [-fx, fy, fx, fy], [-fx, -fy, -fx, fy], [fx, -fy, fx, fy]].forEach(function (e) { line([e[0], e[1], -.12], [e[2], e[3], -.12], K(130), SILVER, 1.2); });
+      panel([-.3, -.45, -.5], [.6, 0, 0], [0, .9, 0], K(1300), GRAY);                                  // khối thiết bị khoa học phía sau
+      panel([-.3, -.45, -.12], [0, 0, -.38], [0, .9, 0], K(450), GRAY); panel([.3, -.45, -.12], [0, 0, -.38], [0, .9, 0], K(450), GRAY);
+      [Math.PI / 2, Math.PI / 2 + TAU / 3, Math.PI / 2 + 2 * TAU / 3].forEach(function (an) { line([.6 * Math.cos(an), .6 * Math.sin(an), .06], [0, 0, 1.3], K(240), SILVER, 1.1); });   // ba thanh đỡ gương phụ
+      for (var q2 = 0; q2 < K(600); q2++) { var rr = Math.sqrt(hal(q2 + 1, 2)) * .07, tt = hal(q2 + 1, 3) * TAU; sh.pt(rr * Math.cos(tt), rr * Math.sin(tt), 1.3, .9, GOLD); }
     });
     return sh;
   }
@@ -728,7 +724,7 @@ canvas.drag { cursor: grabbing; }
     { fn: iss, n: 200000, file: "iss.js", name: "Trạm vũ trụ quốc tế (ISS)", sub: "Dài khoảng 109 m, bay ở độ cao khoảng 400 km, mỗi ngày quay quanh Trái Đất khoảng 16 vòng", tint: "#08172b", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(iss); } },
     { fn: starship, n: 200000, file: "starship.js", name: "Starship và Super Heavy", sub: "Cao khoảng 121 m, đường kính 9 m, bộ tên lửa tái sử dụng hoàn toàn của SpaceX", tint: "#10151f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(starship); } },
     { fn: saturnV, n: 200000, file: "saturn_v.js", name: "Saturn V", sub: "Cao 110,6 m, đưa người Mỹ lên Mặt Trăng trong chương trình Apollo", tint: "#18130f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(saturnV); } },
-    { fn: jwst, n: 120000, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(jwst); } },
+    { fn: jwst, n: 150000, calm: 1, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: [.84, .87, .94], build: function () { return dbl(jwst); } },
     { fn: galaxy, n: 200000, file: "galaxy.js", name: "Thiên hà xoắn ốc", sub: "Bốn cánh tay xoắn ốc quanh nhân sáng, giống dải Ngân Hà của chúng ta", tint: "#150b24", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(galaxy); } },
     { fn: blackhole, n: 200000, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.45, .05], lc: [1, .6, .25], build: function () { return dbl(blackhole); } },
     { fn: sputnik, n: 100000, file: "sputnik.js", name: "Sputnik 1", sub: "Vệ tinh nhân tạo đầu tiên, phóng năm 1957, hình cầu rộng khoảng 58 cm", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(sputnik); } },
@@ -830,7 +826,7 @@ canvas.drag { cursor: grabbing; }
   var shapes = [], motionOn = false, monS = 0;
   function getShape(i) { if (!shapes[i]) { CNT = META[i].n; D = CNT / 100000; shapes[i] = finalize(META[i].build(), i === HI, CNT); } return shapes[i]; }
   var V3 = function (a, b, c) { return new THREE.Vector3(a, b, c); };
-  var U = { uMix: { value: 0 }, uTime: { value: 0 }, uMT: { value: 0 }, uMon: { value: 0 }, uPx: { value: dpr }, uRot: { value: 0 }, uShadow: { value: .5 },
+  var U = { uMix: { value: 0 }, uTime: { value: 0 }, uMT: { value: 0 }, uMon: { value: 0 }, uPx: { value: dpr }, uKA: { value: 0 }, uKB: { value: 0 }, uRot: { value: 0 }, uShadow: { value: .5 },
     uTA: { value: new THREE.Vector2() }, uTB: { value: new THREE.Vector2() }, uCR: { value: V3(1, 0, 0) }, uCU: { value: V3(0, 1, 0) }, uCF: { value: V3(0, 0, 1) },
     uLA: { value: V3(.45, .72, 1) }, uLB: { value: V3(.45, .72, 1) }, uBeat: { value: 0 }, uHA: { value: 0 }, uHB: { value: 0 }, uGain: { value: .8 } };
 
@@ -841,14 +837,14 @@ canvas.drag { cursor: grabbing; }
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: [
       "attribute vec3 aA;attribute vec3 aB;attribute vec4 aSA;attribute vec4 aSB;attribute vec4 aMA;attribute vec4 aMB;attribute vec4 aPA;attribute vec4 aPB;attribute float aR;",
-      "uniform float uMix,uTime,uMT,uMon,uPx,uBeat,uHA,uHB,uShadow;uniform vec2 uTA,uTB;varying vec3 vCol;varying float vAl;varying vec3 vSt;",
+      "uniform float uMix,uTime,uMT,uMon,uPx,uBeat,uHA,uHB,uShadow,uKA,uKB;uniform vec2 uTA,uTB;varying vec3 vCol;varying float vAl;varying vec3 vSt;",
       GLM,
       "void main(){float m=clamp((uMix-aR*.45)/.55,0.,1.);m=m*m*(3.-2.*m);float sw=sin(3.14159*m);",
       " float fa,fb,f2;vec3 pa=place(aA,aMA,aPA,uTA,uMT,fa),pb=place(aB,aMB,aPB,uTB,uMT,fb);vec3 p=mix(pa,pb,m);",
       " float sA=step(4.5,aMA.z)*step(aMA.z,5.5),sB=step(4.5,aMB.z)*step(aMB.z,5.5),sM=mix(sA,sB,m);vec3 dp=vec3(0.);",
       " if(sA+sB>.5){vec3 qa=place(aA,aMA,aPA,uTA,uMT+.08,f2),qb=place(aB,aMB,aPB,uTB,uMT+.08,f2);dp=mix((qa-pa)*sA,(qb-pb)*sB,m);}",
       " p+=vec3(sin(aR*61.+uTime*1.7),cos(aR*43.+uTime*1.3),sin(aR*29.-uTime*1.5))*sw*.55;",
-      " p+=vec3(sin(uTime*.9+aR*91.),cos(uTime*.8+aR*57.),sin(uTime*1.1+aR*33.))*.004;p*=1.+mix(uHA,uHB,m)*uBeat*.085;",
+      " float cm=mix(uKA,uKB,m);p+=vec3(sin(uTime*.9+aR*91.),cos(uTime*.8+aR*57.),sin(uTime*1.1+aR*33.))*.004*(1.-cm);p*=1.+mix(uHA,uHB,m)*uBeat*.085;",
       "",
       " float occ=mix(step(1.5,aPA.w)*step(aPA.w,2.5),step(1.5,aPB.w)*step(aPB.w,2.5),m);",
       " vec3 vv=(modelViewMatrix*vec4(vec3(p.z,0.,-p.x),0.)).xyz;float dop=clamp(vv.z/(length(vv)+1e-4),-1.,1.)*occ;",
@@ -857,7 +853,7 @@ canvas.drag { cursor: grabbing; }
       " dop+=mix(step(.5,aPA.w)*step(aPA.w,1.5),step(.5,aPB.w)*step(aPB.w,1.5),m)*step(8.5,mix(aMA.z,aMB.z,m))*clamp(-(mv.x-cv.x)/(.9*sc),-1.,1.);",
       " float vis=1.-occ*step(mv.z,cv.z)*(1.-smoothstep(uShadow*sc*.96,uShadow*sc*1.05,dist));",
       " vec4 S=mix(aSA,aSB,m);vCol=S.yzw*vec3(1.-.2*dop,1.-.04*dop,1.+.3*dop)*(1.+.6*dop);",
-      " vAl=(.72+.28*sin(uTime*2.2+aR*140.))*vis*mix(1.,mix(fa,fb,m),uMon);",
+      " vAl=mix(.8+.12*sin(uTime*2.2+aR*140.),.95,cm)*vis*mix(1.,mix(fa,fb,m),uMon);",
       " vec2 vd=(modelViewMatrix*vec4(dp,0.)).xy;float vl=length(vd);vSt=vec3(vl>1e-5?vd/vl:vec2(1.,0.),clamp(vl*16.,0.,3.4)*uMon*sM);",
       " gl_PointSize=S.x*uPx*(1.+sw*.5+mix(uHA,uHB,m)*uBeat*.7)*(4.8/-mv.z)*1.5*(1.+vSt.z*.7);gl_Position=projectionMatrix*mv;}"
     ].join("\n"),
@@ -937,6 +933,7 @@ canvas.drag { cursor: grabbing; }
     pg.setAttribute("aMA", A.MA); pg.setAttribute("aMB", B.MA); pg.setAttribute("aPA", A.PA); pg.setAttribute("aPB", B.PA);
     lg.setAttribute("aA", A.lp); lg.setAttribute("aB", B.lp); lg.setAttribute("aMA", A.lM); lg.setAttribute("aMB", B.lM); lg.setAttribute("aPA", A.lP); lg.setAttribute("aPB", B.lP);
     pg.setDrawRange(0, Math.max(A.n, B.n));
+    U.uKA.value = ma.calm ? 1 : 0; U.uKB.value = mb.calm ? 1 : 0;
     U.uHA.value = a === HI ? 1 : 0; U.uHB.value = b === HI ? 1 : 0;
     U.uTA.value.set(ma.tilt[0], ma.tilt[1]); U.uTB.value.set(mb.tilt[0], mb.tilt[1]);
     U.uLA.value.set(ma.lc[0], ma.lc[1], ma.lc[2]); U.uLB.value.set(mb.lc[0], mb.lc[1], mb.lc[2]);

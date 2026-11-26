@@ -10,8 +10,8 @@ files:
     url: "/quy-dao/"
   - label: "Tải mã nguồn"
     url: "/archive/files/quy-dao/quy-dao.html"
-    size: "98 KB"
-    sha256: "e750e5091f5f94d4ea2a1ecefbbbf5d36c02d52f6bb97683dd7f5afbabec3cab"
+    size: "97 KB"
+    sha256: "fef0d500b5ab9a4f141a95853beefe72d89bf9bfe73e1633558d8c4e47a57170"
     download: true
 ---
 
