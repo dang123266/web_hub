@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Hạt sáng tự tạo hình hành tinh, hệ Mặt Trời, trạm vũ trụ, tên lửa, hố đen (có nút MAX thả cả một mặt trời vào); có nút Chuyển động và cửa sổ hiện mã JavaScript thật.">
+<meta name="description" content="Hạt sáng tự tạo hình hành tinh, hệ Mặt Trời, trạm vũ trụ, tên lửa, hố đen 500.000 hạt (chạm vào để thả một mặt trời); có nút Chuyển động và cửa sổ hiện mã JavaScript thật.">
 <meta property="og:title" content="Quỹ đạo">
-<meta property="og:description" content="Hạt sáng dựng hành tinh, hệ Mặt Trời, hố đen, tên lửa. Bật MAX để hố đen nuốt một mặt trời. Kéo để xoay.">
+<meta property="og:description" content="Hạt sáng dựng hành tinh, hệ Mặt Trời, hố đen, tên lửa. Chạm vào hố đen để thả một mặt trời. Kéo để xoay.">
 <meta property="og:image" content="thumb.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <title>Quỹ đạo</title>
@@ -106,7 +106,6 @@ canvas.drag { cursor: grabbing; }
 .ctl button:hover { border-color: var(--cyan); color: #fff; }
 .ctl button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .ctl button[aria-pressed="false"] { color: var(--dim); }
-.ctl button#bMax[aria-pressed="true"] { border-color: #ffb347; color: #fff; background: rgba(255, 160, 40, .26); }
 .ctl button#bMotion[aria-pressed="true"] { border-color: var(--cyan); color: #fff; background: rgba(63, 184, 255, .22); }
 .hint { pointer-events: none; cursor: default; color: var(--dim) !important; border-color: transparent !important; background: none !important; backdrop-filter: none !important; }
 @media (max-width: 600px) { .hint { display: none; } }
@@ -141,7 +140,6 @@ canvas.drag { cursor: grabbing; }
       <button id="bPrev" type="button">Trước</button>
       <button id="bNext" type="button">Sau</button>
       <button id="bMotion" type="button" aria-pressed="false">Chuyển động</button>
-      <button id="bMax" type="button" aria-pressed="false" hidden>MAX</button>
       <button id="bAuto" type="button" aria-pressed="true">Tự chuyển</button>
       <button id="bCode" type="button" aria-pressed="true">Code</button>
     </div>
@@ -580,6 +578,22 @@ canvas.drag { cursor: grabbing; }
         sh.pt(rr2 * Math.cos(th), (yf + G2() * .002) * r0, rr2 * Math.sin(th), R(1.3, 1.8), [c0[0] + (1 - c0[0]) * f * .6, c0[1] + (.95 - c0[1]) * f * .6, c0[2] + (.85 - c0[2]) * f * .6]);
       }
     }
+    // 4. 300.000 hạt còn lại xếp thành các vệt sáng dài: mỗi vệt là một cung quỹ đạo, đầu sáng đuôi mờ, hạt dày tới mức liền thành nét
+    var X = sh.X = { p: [], c: [], w: [], k: [] };
+    for (var a = 0, NA = K(450); a < NA; a++) {   // vệt của đĩa: cung tròn quanh trục, quay Kepler
+      var ra = RIN + (ROUT - RIN) * Math.pow(Math.random(), 1.3), tha = R(0, TAU), lena = R(.35, 1.3) * (1.15 - .4 * (ra - RIN) / (ROUT - RIN)), ya = G2() * (.003 + .01 * ra), br = R(.75, 1), ca = heat(ra);
+      for (var u = 0, NU = K(120); u < NU; u++) {
+        var tt = (u + Math.random()) / NU, th2 = tha - lena * tt, fa = (.1 + .9 * Math.pow(tt, 1.4)) * br;
+        X.p.push(ra * Math.cos(th2), ya + G2() * .0012, ra * Math.sin(th2)); X.c.push(ca[0] * fa, ca[1] * fa, ca[2] * fa); X.w.push(diskW(ra)); X.k.push(0);
+      }
+    }
+    for (var b = 0, NB = K(300); b < NB; b++) {   // vệt của vành: cung chạy dọc theo vành ánh sáng quanh bóng tối
+      var sb = Math.pow(Math.random(), 1.3), psb = R(0, TAU), lenb = R(.5, 1.6), brb = R(.75, 1), cb = heat(RIN + Math.pow(sb, .6) * 1.5);
+      for (var v = 0, NV = K(75); v < NV; v++) {
+        var tv = (v + Math.random()) / NV, fb = (.1 + .9 * Math.pow(tv, 1.4)) * brb;
+        X.p.push(psb + lenb * tv, sb, 0); X.c.push(cb[0] * fb, cb[1] * fb, cb[2] * fb); X.w.push(diskW(RIN + sb * 1.4) * .8); X.k.push(1);
+      }
+    }
     return sh;
   }
 
@@ -688,7 +702,7 @@ canvas.drag { cursor: grabbing; }
     { fn: saturnV, n: 200000, file: "saturn_v.js", name: "Saturn V", sub: "Cao 110,6 m, đưa người Mỹ lên Mặt Trăng trong chương trình Apollo", tint: "#18130f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(saturnV); } },
     { fn: jwst, n: 200000, calm: 1, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: [.84, .87, .94], build: function () { return dbl(jwst); } },
     { fn: galaxy, n: 200000, file: "galaxy.js", name: "Thiên hà xoắn ốc", sub: "Bốn cánh tay xoắn ốc quanh nhân sáng, giống dải Ngân Hà của chúng ta", tint: "#150b24", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(galaxy); } },
-    { fn: blackhole, n: 200000, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.09, .3], lc: [1, .6, .25], max: true, build: function () { return blackhole(); } },
+    { fn: blackhole, n: 200000, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.09, .3], lc: [1, .6, .25], streaks: true, extra: 300000, more: [buildSun], build: function () { return blackhole(); } },
     { fn: sputnik, n: 100000, file: "sputnik.js", name: "Sputnik 1", sub: "Vệ tinh nhân tạo đầu tiên, phóng năm 1957, hình cầu rộng khoảng 58 cm", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(sputnik); } },
   ];
   var NS = META.length - 1;
@@ -705,6 +719,7 @@ canvas.drag { cursor: grabbing; }
   }
   function makeSrc(m) {
     var lines = ["// " + m.file + " - mã JavaScript thật, trang đang chạy đúng hàm này", ""].concat(pretty(String(m.fn)));
+    (m.more || []).forEach(function (f) { lines.push("", "// bấm vào hố đen: thả một mặt trời"); lines = lines.concat(pretty(String(f))); });
     var runN = lines.length;
     lines.push("", "// mỗi khung hình");
     var loopStart = lines.length; lines = lines.concat(pretty(String(tick)));
@@ -784,7 +799,7 @@ canvas.drag { cursor: grabbing; }
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(45, 1, .1, 120);
   var root = new THREE.Group(); scene.add(root);
   var shapes = [], motionOn = false, monS = 0;
-  function getShape(i) { if (!shapes[i]) { CNT = META[i].n; D = CNT / 100000; shapes[i] = finalize(META[i].build(), false, CNT); } return shapes[i]; }
+  function getShape(i) { if (!shapes[i]) { CNT = META[i].n; D = CNT / 100000; var raw = META[i].build(); shapes[i] = finalize(raw, false, CNT); if (raw.X) shapes[i].X = raw.X; } return shapes[i]; }
   var V3 = function (a, b, c) { return new THREE.Vector3(a, b, c); };
   var U = { uMix: { value: 0 }, uTime: { value: 0 }, uMT: { value: 0 }, uMon: { value: 0 }, uPx: { value: dpr }, uKA: { value: 0 }, uKB: { value: 0 }, uRot: { value: 0 }, uShadow: { value: .5 },
     uTA: { value: new THREE.Vector2() }, uTB: { value: new THREE.Vector2() }, uCR: { value: V3(1, 0, 0) }, uCU: { value: V3(0, 1, 0) }, uCF: { value: V3(0, 0, 1) },
@@ -883,50 +898,75 @@ canvas.drag { cursor: grabbing; }
     });
   }
 
-  /* ================= MAX: một mặt trời 200.000 hạt bị hố đen xé và hút vào ================= */
-  var SUNN = 200000, sunPts = null, sunK = 0, maxOn = false, SU = { uT: { value: 0 }, uK: { value: 0 } };
+  /* ================= Hố đen: 300.000 hạt xếp thành vệt sáng dài + mặt trời bị hút vào (chạm để thả, mỗi lần một cái) ================= */
+  function hal(i, b) { var f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; }
+  var TOT = function (i) { return META[i].n + (META[i].extra || 0); };
+  var FRAG = "precision mediump float;varying vec3 vCol;varying float vAl;void main(){float r=length(gl_PointCoord-.5)*2.;if(r>1.)discard;float a=pow(1.-r,2.2),core=pow(1.-r,6.);gl_FragColor=vec4(vCol*(a*.8+core*1.3)*.8,(a+core)*vAl*.7);}";
+  var bhI = -1; META.forEach(function (m, i) { if (m.streaks) bhI = i; });
+  var BX = { uShow: { value: 0 } }, bhx = null;
+  function ensureStreaks(i) {
+    if (bhx) return; var X = shapes[i].X, n = X.k.length, g = new THREE.BufferGeometry(), sz = new Float32Array(n);
+    for (var q = 0; q < n; q++) sz[q] = R(1.1, 1.6);
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(X.p), 3)); g.setAttribute("aC", new THREE.BufferAttribute(new Float32Array(X.c), 3));
+    g.setAttribute("aW", new THREE.BufferAttribute(new Float32Array(X.w), 1)); g.setAttribute("aK", new THREE.BufferAttribute(new Float32Array(X.k), 1)); g.setAttribute("aSz", new THREE.BufferAttribute(sz, 1));
+    var mat = new THREE.ShaderMaterial({
+      uniforms: { uMT: U.uMT, uPx: U.uPx, uRot: U.uRot, uShow: BX.uShow, uShadow: U.uShadow, uCR: U.uCR, uCU: U.uCU, uTS: { value: new THREE.Vector2(META[i].tilt[0], META[i].tilt[1]) } },
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: [
+        "attribute vec3 aC;attribute float aW,aK,aSz;uniform float uMT,uPx,uRot,uShow,uShadow;uniform vec2 uTS;uniform vec3 uCR,uCU;varying vec3 vCol;varying float vAl;",
+        "vec3 rotY(vec3 p,float a){float c=cos(a),s=sin(a);return vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);}",
+        "vec3 tilt(vec3 p,vec2 a){float c0=cos(a.x),s0=sin(a.x);p=vec3(p.x,c0*p.y-s0*p.z,s0*p.y+c0*p.z);float c=cos(a.y),s=sin(a.y);return vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);}",
+        "void main(){vec3 p;float disk=1.-aK;",
+        " if(aK<.5){p=tilt(rotY(rotY(position,aW*uMT),uRot),uTS);}",
+        " else{float ps=position.x+aW*uMT,cc=cos(ps-.3),bb=.54+position.y*(.5+.9*cc*cc);p=uCR*(bb*cos(ps))+uCU*(bb*sin(ps));}",
+        " vec4 mv=modelViewMatrix*vec4(p,1.);vec3 cv=(modelViewMatrix*vec4(0.,0.,0.,1.)).xyz;float sc=length(modelViewMatrix[0].xyz);float dist=length(mv.xy/mv.z-cv.xy/cv.z)*-cv.z;",
+        " float vis=1.-disk*step(mv.z,cv.z)*(1.-smoothstep(uShadow*sc*.96,uShadow*sc*1.05,dist));",
+        " vCol=aC;vAl=uShow*vis;gl_PointSize=aSz*uPx*(4.8/-mv.z)*1.5;gl_Position=projectionMatrix*mv;}"
+      ].join("\n"),
+      fragmentShader: FRAG
+    });
+    bhx = new THREE.Points(g, mat); bhx.frustumCulled = false; bhx.visible = false; root.add(bhx);
+  }
+
+  var SUNN = 200000, SUN_TL = 18, sunPts = null, sunOn = false, SU = { uT: { value: 0 }, uTh: { value: 3.9 } };
+  // mặt trời gồm 2.500 sợi màu, mỗi sợi 80 hạt nằm dọc theo hướng quỹ đạo; khi bị hút, các sợi bị kéo thành dải dài chứ không phải một quả cầu có vỏ
   function buildSun() {
-    var pos = new Float32Array(SUNN * 3), col = new Float32Array(SUNN * 3), sz = new Float32Array(SUNN);
-    var PAL = [[1, .84, .38], [1, .66, .2], [1, .94, .72], [.96, .48, .1]], W = [.3, .72, .86, 1];
-    for (var i = 0; i < SUNN; i++) {
-      var u = (hal(i + 1, 2)) * 2 - 1, ph = hal(i + 1, 3) * TAU, s = Math.sqrt(1 - u * u);
-      var shell = Math.random() < .78, rad = shell ? 1 - Math.abs(G2()) * .035 : Math.cbrt(Math.random()) * .96;
-      pos[i * 3] = rad * s * Math.cos(ph); pos[i * 3 + 1] = rad * u; pos[i * 3 + 2] = rad * s * Math.sin(ph);
-      var r = Math.random(), c = PAL[r < W[0] ? 0 : r < W[1] ? 1 : r < W[2] ? 2 : 3], v = .93 + Math.random() * .14, core = shell ? 0 : .25;
-      col[i * 3] = Math.min(1, c[0] * v + core); col[i * 3 + 1] = Math.min(1, c[1] * v + core); col[i * 3 + 2] = Math.min(1, c[2] * v + core * .6);
-      sz[i] = R(1.1, 1.7);
+    var pos = new Float32Array(SUNN * 3), col = new Float32Array(SUNN * 3), sz = new Float32Array(SUNN), NSTR = 2500, PER = SUNN / NSTR;
+    var PAL = [[1, .84, .38], [1, .66, .2], [1, .94, .72], [.96, .48, .1], [1, .38, .12], [1, .75, .3]];
+    for (var s = 0; s < NSTR; s++) {
+      var rho = Math.sqrt(Math.random()), ph = Math.random() * TAU, a = rho * Math.cos(ph), b = rho * Math.sin(ph), h = Math.sqrt(1 - rho * rho), c = PAL[Math.floor(Math.random() * PAL.length)], v = .85 + Math.random() * .3;
+      for (var k = 0; k < PER; k++) {
+        var o = s * PER + k, z = (k + Math.random()) / PER * 2 - 1, core = .12 * (1 - rho);
+        pos[o * 3] = a; pos[o * 3 + 1] = b; pos[o * 3 + 2] = z * h;
+        col[o * 3] = Math.min(1, c[0] * v + core); col[o * 3 + 1] = Math.min(1, c[1] * v + core); col[o * 3 + 2] = Math.min(1, c[2] * v + core * .6);
+        sz[o] = R(1.1, 1.6);
+      }
     }
     var g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("aC", new THREE.BufferAttribute(col, 3)); g.setAttribute("aSz", new THREE.BufferAttribute(sz, 1));
     var mat = new THREE.ShaderMaterial({
-      uniforms: { uT: SU.uT, uK: SU.uK, uPx: U.uPx, uRot: U.uRot, uTS: { value: new THREE.Vector2(.7, .25) }, uShadow: U.uShadow, uCR: U.uCR, uCU: U.uCU, uCF: U.uCF }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uT: SU.uT, uTh: SU.uTh, uPx: U.uPx, uShadow: U.uShadow, uTS: { value: new THREE.Vector2(.7, .25) } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: [
-        "attribute vec3 aC;attribute float aSz;uniform float uT,uK,uPx,uShadow;uniform vec2 uTS;varying vec3 vCol;varying float vAl;uniform float uRot;",
-        "vec3 rotY(vec3 p,float a){float c=cos(a),s=sin(a);return vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);}",
+        "attribute vec3 aC;attribute float aSz;uniform float uT,uPx,uShadow,uTh;uniform vec2 uTS;varying vec3 vCol;varying float vAl;",
         "vec3 tilt(vec3 p,vec2 a){float c0=cos(a.x),s0=sin(a.x);p=vec3(p.x,c0*p.y-s0*p.z,s0*p.y+c0*p.z);float c=cos(a.y),s=sin(a.y);return vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);}",
         // quỹ đạo xoắn ốc: tâm mặt trời rơi từ r0 vào hố; mỗi hạt có bán kính riêng nên hạt phía trong quay nhanh hơn và bị kéo thành dải
-        "void main(){float TL=18.,r0=3.2,RSun=.34;float u=fract(uT/TL);float rc=r0*(1.-pow(u,1.3));float tid=smoothstep(2.4,.8,rc);",
+        "void main(){float r0=3.2,RSun=.34;float u=clamp(uT/" + SUN_TL + ".,0.,1.);float rc=r0*(1.-pow(u,1.3));float tid=smoothstep(2.4,.8,rc);",
         " float rp=rc+position.x*RSun-(.5-.5*position.x)*tid*1.3;rp=max(rp,.5);",
-        " float th=3.9-.05*(pow(r0/rp,3.)-1.)+position.z*RSun/max(rc,.8);",
+        " float th=uTh-.05*(pow(r0/rp,3.)-1.)+position.z*RSun/max(rc,.8);",
         " float y=position.y*RSun*(1.-.78*tid);vec3 p=tilt(vec3(rp*cos(th),y,rp*sin(th)),uTS);",
         " vec4 mv=modelViewMatrix*vec4(p,1.);vec3 cv=(modelViewMatrix*vec4(0.,0.,0.,1.)).xyz;float sc=length(modelViewMatrix[0].xyz);float dist=length(mv.xy/mv.z-cv.xy/cv.z)*-cv.z;",
         " float vis=1.-step(mv.z,cv.z)*(1.-smoothstep(uShadow*sc*.96,uShadow*sc*1.05,dist));",
         " vCol=mix(aC,vec3(1.,.9,.62),tid*.45)*(.46+.5*tid);",
-        " vAl=uK*vis*smoothstep(0.,.05,u)*smoothstep(.5,.85,rp)*(1.-smoothstep(.93,1.,u));",
+        " vAl=vis*smoothstep(0.,.05,u)*smoothstep(.5,.85,rp)*(1.-smoothstep(.93,1.,u));",
         " gl_PointSize=aSz*uPx*(4.8/-mv.z)*1.5;gl_Position=projectionMatrix*mv;}"
       ].join("\n"),
-      fragmentShader: "precision mediump float;varying vec3 vCol;varying float vAl;void main(){float r=length(gl_PointCoord-.5)*2.;if(r>1.)discard;float a=pow(1.-r,2.2),core=pow(1.-r,6.);gl_FragColor=vec4(vCol*(a*.8+core*1.3)*.8,(a+core)*vAl*.7);}"
+      fragmentShader: FRAG
     });
     sunPts = new THREE.Points(g, mat); sunPts.frustumCulled = false; sunPts.visible = false; root.add(sunPts);
   }
-  function hal(i, b) { var f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; }
-  window.__t = function (t) { SU.uT.value = t; };
-  window.__s = function () { return [sunPts && sunPts.visible, sunK, SU.uT.value, SU.uK.value, maxOn]; };
-  function setMax(on) {
-    if (on && !sunPts) buildSun();
-    if (on && !maxOn) SU.uT.value = 0;
-    maxOn = on; bMax.setAttribute("aria-pressed", String(on));
-    conPts.textContent = (on ? META[cur].n * 2 : META[cur].n).toLocaleString("vi-VN");
+  function throwSun(th0) {
+    if (sunOn) return; if (!sunPts) buildSun();
+    SU.uT.value = 0; SU.uTh.value = th0; sunOn = true; sunPts.visible = true;
   }
 
   /* ================= Điều khiển chuyển hình ================= */
@@ -949,15 +989,13 @@ canvas.drag { cursor: grabbing; }
     for (var k = 0; k < dotsEl.children.length; k++) dotsEl.children[k].className = (k === i - 1) ? "on" : "";
     stage.style.setProperty("--tint", META[i].tint);
   }
-  function startMorph(to) { tz = META[to].zoom || 1; nxt = to; curMeta = to; bind(cur, nxt); U.uMix.value = 0; mixT = 0; state = "morph"; label(to); setCode(to); lastLoop = 0; bMax.hidden = !META[to].max; if (!META[to].max && maxOn) setMax(false); }
+  function startMorph(to) { tz = META[to].zoom || 1; nxt = to; curMeta = to; bind(cur, nxt); U.uMix.value = 0; mixT = 0; state = "morph"; label(to); setCode(to); lastLoop = 0; if (META[to].streaks) ensureStreaks(to); else if (sunOn) { sunOn = false; if (sunPts) sunPts.visible = false; }
+    document.querySelector(".hint").textContent = META[to].streaks ? "Chạm vào hố đen để thả một mặt trời · kéo để xoay" : "Kéo để xoay · cuộn để phóng to"; }
   function nextOf(i) { return i % NS + 1; }
   function goTo(i) { if (state === "hold" && i !== cur) startMorph(i); }
 
-  var bMax = document.getElementById("bMax");
   var bMotion = document.getElementById("bMotion");
   bMotion.addEventListener("click", function () { motionOn = !motionOn; bMotion.setAttribute("aria-pressed", String(motionOn)); });
-
-  bMax.addEventListener("click", function () { if (state === "hold" && META[cur].max) setMax(!maxOn); });
 
   startMorph(1);
   // dựng sẵn hình kế tiếp lúc máy rảnh (mỗi lần một hình) để chuyển hình không bị khựng
@@ -966,9 +1004,9 @@ canvas.drag { cursor: grabbing; }
 
   /* ================= Tương tác chậm và mượt ================= */
   var tuy = 0, tup = .0, uy = 0, up = 0, tz = 1, zz = 1, auto_y = 0, dragging = false, lx = 0, ly = 0, lastAct = -99, T = 0;
-  var hx = 0, hy = 0, mxn = 0, myn = 0, pointers = {}, pinch0 = 0;
+  var dnX = 0, dnY = 0, dnT = 0, hx = 0, hy = 0, mxn = 0, myn = 0, pointers = {}, pinch0 = 0;
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  canvas.addEventListener("pointerdown", function (e) { canvas.setPointerCapture(e.pointerId); pointers[e.pointerId] = [e.clientX, e.clientY]; dragging = true; canvas.classList.add("drag"); lx = e.clientX; ly = e.clientY; lastAct = T; });
+  canvas.addEventListener("pointerdown", function (e) { canvas.setPointerCapture(e.pointerId); pointers[e.pointerId] = [e.clientX, e.clientY]; dragging = true; dnX = e.clientX; dnY = e.clientY; dnT = T; canvas.classList.add("drag"); lx = e.clientX; ly = e.clientY; lastAct = T; });
   canvas.addEventListener("pointermove", function (e) {
     mxn = e.clientX / innerWidth * 2 - 1; myn = e.clientY / innerHeight * 2 - 1;
     if (!pointers[e.pointerId]) return; pointers[e.pointerId] = [e.clientX, e.clientY];
@@ -977,7 +1015,7 @@ canvas.drag { cursor: grabbing; }
     var dx = clamp(e.clientX - lx, -40, 40), dy = clamp(e.clientY - ly, -40, 40); lx = e.clientX; ly = e.clientY;
     tuy += dx * .0042; tup = clamp(tup + dy * .0032, -.9, .9); lastAct = T;
   });
-  function up_(e) { delete pointers[e.pointerId]; pinch0 = 0; if (!Object.keys(pointers).length) { dragging = false; canvas.classList.remove("drag"); } }
+  function up_(e) { var p0 = pointers[e.pointerId]; if (p0 && Object.keys(pointers).length === 1 && Math.hypot(e.clientX - dnX, e.clientY - dnY) < 8 && T - dnT < .45 && state === "hold" && META[cur].streaks) throwSun(e.clientX < innerWidth / 2 ? 3.9 : 5.5); delete pointers[e.pointerId]; pinch0 = 0; if (!Object.keys(pointers).length) { dragging = false; canvas.classList.remove("drag"); } }
   canvas.addEventListener("pointerup", up_); canvas.addEventListener("pointercancel", up_);
   canvas.addEventListener("wheel", function (e) { e.preventDefault(); tz = clamp(tz * (1 - e.deltaY * .0008), .6, 1.7); lastAct = T; }, { passive: false });
   document.getElementById("bNext").addEventListener("click", function () { goTo(nextOf(cur)); });
@@ -1001,10 +1039,10 @@ canvas.drag { cursor: grabbing; }
     if (state === "morph") {
       mixT += dt / DUR; var p = Math.min(mixT, 1); U.uMix.value = p;
       var cnt = runIdx.length, k = Math.min(cnt - 1, Math.floor(p * cnt * 1.02)); if (k > execK) runTo(k);
-      conPts.textContent = Math.round(p * Math.max(META[cur].n, META[nxt].n)).toLocaleString("vi-VN"); conBar.style.width = (p * 100).toFixed(1) + "%";
-      if (mixT >= 1) { runTo(cnt - 1); cur = nxt; bind(cur, cur); U.uMix.value = 0; state = "hold"; holdT = 0; conPts.textContent = META[cur].n.toLocaleString("vi-VN"); conBar.style.width = "100%"; }
+      conPts.textContent = Math.round(p * Math.max(TOT(cur), TOT(nxt))).toLocaleString("vi-VN"); conBar.style.width = (p * 100).toFixed(1) + "%";
+      if (mixT >= 1) { runTo(cnt - 1); cur = nxt; bind(cur, cur); U.uMix.value = 0; state = "hold"; holdT = 0; conPts.textContent = TOT(cur).toLocaleString("vi-VN"); conBar.style.width = "100%"; }
     } else {
-      if (auto && T - lastAct > 5 && !maxOn) holdT += dt;
+      if (auto && T - lastAct > 5 && !sunOn) holdT += dt;
       if (holdT > HOLD) startMorph(nextOf(cur));
       lastLoop += dt; if (loopIdx.length && lastLoop > .6) { lastLoop = 0; loopI = (loopI + 1) % loopIdx.length; setActive(loopIdx[loopI]); }
     }
@@ -1019,7 +1057,8 @@ canvas.drag { cursor: grabbing; }
     root.rotation.x = up + hy * .06; root.rotation.y = hx * .08;
     var br = 1 + Math.sin(T * .6) * .008; root.scale.setScalar(zz * br);
     orbitGroup.rotation.y += dt * .05;
-    if (sunPts) { sunK += ((maxOn ? 1 : 0) - sunK) * (1 - Math.exp(-dt * 2.5)); SU.uK.value = sunK; sunPts.visible = sunK > .01; if (maxOn) SU.uT.value += dt; }
+    if (sunOn) { SU.uT.value += dt; if (SU.uT.value >= SUN_TL) { sunOn = false; sunPts.visible = false; } }
+    if (bhx) { var sh2 = state === "hold" ? (cur === bhI ? 1 : 0) : (nxt === bhI ? U.uMix.value : 0) + (cur === bhI ? 1 - U.uMix.value : 0); BX.uShow.value = Math.max(0, Math.min(1, sh2)); bhx.visible = sh2 > .01; }
     camAxes();
     renderer.render(scene, camera);
     if (!canvas.classList.contains("ready")) canvas.classList.add("ready");

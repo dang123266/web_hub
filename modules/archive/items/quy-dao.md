@@ -10,11 +10,11 @@ files:
     url: "/quy-dao/"
   - label: "Tải mã nguồn"
     url: "/archive/files/quy-dao/quy-dao.html"
-    size: "86 KB"
-    sha256: "bf0e2ce105def9bc00ea471c89f692cae1c80b66988ead118bcedef5e4633da2"
+    size: "90 KB"
+    sha256: "1138f93f62887d1206bd6da4f03708adc64f50ef930ff1306e1f2c3e7346d39c"
     download: true
 ---
 
 Kéo chuột để xoay chậm, cuộn để phóng to. Nút **Chuyển động** cho mọi thứ quay và chảy như thật: hành tinh quay theo định luật Kepler, hạt bị kéo dãn rơi vào hố đen, tên lửa phụt lửa. Cửa sổ bên trái hiện đúng mã JavaScript đang dựng hình, đọc theo từng dòng đang chạy.
 
-Ở hình hố đen có nút **MAX**: thả thêm một mặt trời 200.000 hạt, bị hố đen xé thành dải sáng dài rồi hút vào, tổng cộng 400.000 hạt.
+Hố đen dùng 500.000 hạt xếp thành các vệt sáng dài. Chạm vào hố đen để thả một mặt trời: nó bị xé thành dải sáng rồi hút vào, mỗi lần một cái.
