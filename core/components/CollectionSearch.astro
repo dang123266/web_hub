@@ -206,3 +206,7 @@ const data = JSON.stringify({ items, route: withBase(route), label }).replace(/<
 .result-body { min-width: 0; }
 @media (max-width: 560px) { .result-item.has-thumb { grid-template-columns: 1fr; } }
 </style>
+<style is:global>
+.item-image { margin: 12px 0; }
+.item-image img { max-width: 100%; height: auto; border-radius: 12px; display: block; }
+</style>

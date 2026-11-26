@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Hạt sáng tự tạo hình hành tinh, hệ Mặt Trời, trạm vũ trụ, tên lửa, hố đen và trái tim đập; có nút Chuyển động và cửa sổ hiện mã JavaScript thật.">
 <meta property="og:title" content="Quỹ đạo">
-<meta property="og:description" content="160.000 hạt sáng dựng hành tinh, hệ Mặt Trời, hố đen, tên lửa và trái tim đập. Kéo để xoay.">
+<meta property="og:description" content="Hạt sáng dựng hành tinh, hệ Mặt Trời, hố đen, tên lửa và trái tim đập. Kéo để xoay.">
 <meta property="og:image" content="thumb.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <title>Quỹ đạo</title>
@@ -186,7 +186,7 @@ canvas.drag { cursor: grabbing; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function () {
-  var D = 1.6, N = 160000, NL = 20000, HRES = 16000, TAU = Math.PI * 2;
+  var D = 2, N = 200000, CNT = 200000, NL = 24000, HRES = 20000, HN = 120000, TAU = Math.PI * 2;
   var K = function (n) { return Math.round(n * D); };
   var R = function (a, b) { return a + Math.random() * (b - a); };
   var G2 = function () { return (Math.random() + Math.random() + Math.random() - 1.5) / 1.5; };
@@ -265,7 +265,7 @@ canvas.drag { cursor: grabbing; }
   }
   // dựng lặp lại cho tới khi đủ hạt: mỗi lượt lấy mẫu ngẫu nhiên mới nên mật độ tăng thật
   function dbl(fn) {
-    var a = fn(), reps = Math.max(1, Math.min(3, Math.ceil(N * 1.05 / (a.p.length / 15))));
+    var a = fn(), reps = Math.max(1, Math.min(3, Math.ceil(CNT * 1.05 / (a.p.length / 15))));
     for (var i = 1; i < reps; i++) { var b = fn(); a.p = a.p.concat(b.p); a.s = a.s.concat(b.s); }
     return a;
   }
@@ -274,21 +274,21 @@ canvas.drag { cursor: grabbing; }
   /* ---------- 1. Hành tinh có vành đai ---------- */
   function planet() {
     var sh = new Shape();
-    mot(sh, [0, .35, 1, 0, 0, 0, 0, 0], function () { sphere(sh, .62, K(14000), 24, 48, 24); });   // mặt cầu tự quay
+    mot(sh, [0, .35, 1, 0, 0, 0, 0, 0], function () { sphere(sh, .62, K(30000), 24, 48, 24); });   // mặt cầu tự quay
     var radii = []; for (var r = .86; r < 1.78; r += .05) { if (r > 1.2 && r < 1.27) continue; radii.push(r); }
     radii.forEach(function (rr, idx) {                                                              // mỗi vành quay theo định luật Kepler
       mot(sh, [.55 * Math.pow(.9 / rr, 1.5), 0, 1, 0, 0, 0, 0, 0], function () {
         var prev = null;
-        for (var i = 0; i < K(520); i++) { var t = R(0, TAU); sh.pt(rr * Math.cos(t), R(-.004, .004), rr * Math.sin(t), R(.7, 1.6)); }
+        for (var i = 0; i < K(1100); i++) { var t = R(0, TAU); sh.pt(rr * Math.cos(t), R(-.004, .004), rr * Math.sin(t), R(.7, 1.6)); }
         for (var k = 0; k <= 72; k++) { var tt = k / 72 * TAU, q = [rr * Math.cos(tt), 0, rr * Math.sin(tt)]; if (prev && idx % 2 === 0) sh.seg(prev, q); prev = q; }
       });
     });
-    for (var d = 0; d < K(6000); d++) { var rr2 = R(.86, 1.8); sh.M = [.55 * Math.pow(.9 / rr2, 1.5), 0, 1, 0, 0, 0, 0, 0]; var t2 = R(0, TAU); sh.pt(rr2 * Math.cos(t2), R(-.025, .025), rr2 * Math.sin(t2), R(.5, 1.1)); }
+    for (var d = 0; d < K(14000); d++) { var rr2 = R(.86, 1.8); sh.M = [.55 * Math.pow(.9 / rr2, 1.5), 0, 1, 0, 0, 0, 0, 0]; var t2 = R(0, TAU); sh.pt(rr2 * Math.cos(t2), R(-.025, .025), rr2 * Math.sin(t2), R(.5, 1.1)); }
     sh.M = null; circleY(sh, 2.1, 140); circleY(sh, 1.9, 140); circleY(sh, 2.3, 140);
     [[2.1, .22, 1.0], [1.9, .3, 3.2], [2.3, .18, 5.0]].forEach(function (m) {                     // ba mặt trăng quay quanh hành tinh
       mot(sh, [m[1], 0, 1, 0, 0, 0, 0, 0], function () {
         var c = [m[0] * Math.cos(m[2]), 0, m[0] * Math.sin(m[2])];
-        for (var i = 0; i < K(500); i++) { var u = Math.random() * 2 - 1, t = R(0, TAU), s = Math.sqrt(1 - u * u); sh.pt(c[0] + .07 * s * Math.cos(t), c[1] + .07 * u, c[2] + .07 * s * Math.sin(t), R(1, 2), COLS.hot); }
+        for (var i = 0; i < K(1000); i++) { var u = Math.random() * 2 - 1, t = R(0, TAU), s = Math.sqrt(1 - u * u); sh.pt(c[0] + .07 * s * Math.cos(t), c[1] + .07 * u, c[2] + .07 * s * Math.sin(t), R(1, 2), COLS.hot); }
       });
     });
     return sh;
@@ -483,30 +483,44 @@ canvas.drag { cursor: grabbing; }
     for (var e = 0; e < 6; e++) edge(sh, V[e], V[(e + 1) % 6], 26, COLS.hot, 1.2);
   }
   function jwst() {
-    var sh = new Shape(); sh.T = function (v) { return rotY(v, -.5); };
-    var P = [[-1.9, -.05], [-.65, -.95], [.65, -.95], [1.9, -.05], [.65, .8], [-.65, .8]], Z0 = -.34;
+    var sh = new Shape(); sh.T = function (v) { return rotXZ(rotY(v, -.6), .5, 0); };
+    var P = [[-1.9, 0], [-.65, .95], [.65, .95], [1.9, 0], [.65, -.95], [-.65, -.95]];           // tấm chắn nắng hình diều (x, z)
+    var LAYER = [[1, .6, .48], [.98, .55, .8], [.72, .56, 1], [.55, .66, 1], [.5, .84, 1]];      // lớp sát Mặt Trời nóng nhất
+    var bow = function (x, z) { return .035 * (1 - x * x / 3.6 - z * z / .9); };
     for (var L = 0; L < 5; L++) {
-      var z = Z0 + L * .055, k = 1 - L * .022, col = L < 2 ? COLS.pink : (L < 4 ? COLS.violet : COLS.ice);
-      for (var i = 0; i < 3800; i++) { var t = Math.floor(Math.random() * 6), A = P[t], B = P[(t + 1) % 6], u = Math.random(), v = Math.random(); if (u + v > 1) { u = 1 - u; v = 1 - v; } sh.pt(k * (A[0] * u + B[0] * v), k * (A[1] * u + B[1] * v), z, R(.6, 1.2), col); }
-      for (var e = 0; e < 6; e++) { var a = P[e], b = P[(e + 1) % 6]; edge(sh, [k * a[0], k * a[1], z], [k * b[0], k * b[1], z], 90, col, 1); }
+      var y = L * .06, k = 1 - L * .016, col = LAYER[L];
+      for (var i = 0; i < K(7500); i++) {
+        var t = Math.floor(Math.random() * 6), A = P[t], B = P[(t + 1) % 6], u = Math.random(), v = Math.random(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+        var x = k * (A[0] * u + B[0] * v), z = k * (A[1] * u + B[1] * v); sh.pt(x, y + bow(x, z), z, R(.6, 1.3), col);
+      }
+      for (var e = 0; e < 6; e++) { var a0 = P[e], b0 = P[(e + 1) % 6]; edge(sh, [k * a0[0], y + bow(k * a0[0], k * a0[1]), k * a0[1]], [k * b0[0], y + bow(k * b0[0], k * b0[1]), k * b0[1]], K(160), col, 1.2); }
+      if (L % 2 === 0) for (var r = 0; r < 6; r++) sh.seg([0, y + bow(0, 0), 0], [k * P[r][0], y + bow(k * P[r][0], k * P[r][1]), k * P[r][1]]);
     }
-    for (var r = 0; r < 6; r++) edge(sh, [0, 0, Z0], [P[r][0], P[r][1], Z0], 80, COLS.ice, 1.1);   // xương sườn căng tấm chắn
-    edge(sh, [0, -.95, Z0], [0, .8, Z0], 120, COLS.ice, 1.1);
-    // thân vệ tinh nằm phía sau tấm chắn, nối với giàn gương bằng ba trụ xuyên qua tâm các lớp
-    var bx = .32, by0 = -.75, by1 = -.35, bz0 = -1.0, bz1 = -.55;
-    [[-bx, by0], [bx, by0], [bx, by1], [-bx, by1]].forEach(function (c, i, arr) { var n = arr[(i + 1) % 4]; edge(sh, [c[0], c[1], bz0], [n[0], n[1], bz0], 50, COLS.steel); edge(sh, [c[0], c[1], bz1], [n[0], n[1], bz1], 50, COLS.steel); edge(sh, [c[0], c[1], bz0], [c[0], c[1], bz1], 40, COLS.steel); });
-    plate(sh, [-bx, by0, bz1], [2 * bx, 0, 0], [0, by1 - by0, 0], 700, 5, 3, COLS.dim);
-    plate(sh, [bx, by0, bz0], [0, 0, bz1 - bz0], [.55, 0, 0], 700, 4, 3, COLS.amber);   // pin mặt trời của vệ tinh
-    for (var d = 0; d < 260; d++) { var dt = R(0, TAU), dr = Math.sqrt(Math.random()) * .09; sh.pt(-.1 + dr * Math.cos(dt), -.55 + dr * Math.sin(dt), bz0 - .02, R(1, 1.8), COLS.white); } // ăng-ten
-    [[-.16, .4], [.16, .4], [-.16, .62], [.16, .62]].forEach(function (c) { edge(sh, [c[0], c[1], .2], [c[0] * .8, -.45 + (c[1] > .5 ? .1 : 0), bz1], 200, COLS.steel, 1.1); });
-    // gương chính 18 mảnh lục giác mạ vàng, chừa lỗ giữa, và ba thanh đỡ gương phụ
-    sub(sh, function (v) { var w = rotXZ(v, -.4, 0); return [w[0], w[1] + .5, w[2] + .3]; }, function () {
-      var s = .165, d2 = Math.sqrt(3) * s * 1.03, cs = [];
-      for (var k2 = 0; k2 < 6; k2++) { var a2 = k2 * Math.PI / 3; cs.push([d2 * Math.cos(a2), d2 * Math.sin(a2)]); }
-      for (var k3 = 0; k3 < 6; k3++) { var a3 = k3 * Math.PI / 3; cs.push([2 * d2 * Math.cos(a3), 2 * d2 * Math.sin(a3)]); cs.push([3 * s * 1.03 * Math.cos(a3 + Math.PI / 6), 3 * s * 1.03 * Math.sin(a3 + Math.PI / 6)]); }
-      cs.forEach(function (c) { hexFill(sh, c, s * .97, 1000, Math.random() < .5 ? COLS.gold : COLS.hot); });
-      [Math.PI / 2, Math.PI / 2 + TAU / 3, Math.PI / 2 + 2 * TAU / 3].forEach(function (a) { edge(sh, [.62 * Math.cos(a), .62 * Math.sin(a), 0], [0, 0, 1.05], 150, COLS.steel); });
-      for (var q = 0; q < 420; q++) { var tt = R(0, TAU), rr = Math.sqrt(Math.random()) * .07; sh.pt(rr * Math.cos(tt), rr * Math.sin(tt), 1.05, R(1, 2), COLS.gold); }
+    [[1.9, 0], [-1.9, 0], [0, .95], [0, -.95]].forEach(function (e) { edge(sh, [e[0], .02, e[1]], [e[0] * 1.14, .02, e[1] * 1.14], K(40), COLS.steel, 1.2); });  // thanh căng tấm chắn
+    // tháp nối thân vệ tinh với kính, xuyên qua tâm các lớp chắn nắng
+    for (var yy = -.5; yy <= .42; yy += .045) { var pr = null; for (var q = 0; q <= 24; q++) { var tq = q / 24 * TAU, pq = [.09 * Math.cos(tq), yy, .09 * Math.sin(tq)]; if (q % 3 === 0) sh.pt(pq[0], pq[1], pq[2], 1.3, COLS.steel); if (pr) sh.seg(pr, pq); pr = pq; } }
+    for (var vv = 0; vv < 4; vv++) { var va = vv * Math.PI / 2; edge(sh, [.09 * Math.cos(va), -.5, .09 * Math.sin(va)], [.09 * Math.cos(va), .42, .09 * Math.sin(va)], K(90), COLS.steel, 1.1); }
+    // thân vệ tinh phía nóng: hộp, tấm pin mặt trời, ăng-ten
+    var bx = .36, bz = .3, by0 = -.92, by1 = -.5;
+    [[-bx, -bz], [bx, -bz], [bx, bz], [-bx, bz]].forEach(function (c, i, arr) { var n = arr[(i + 1) % 4]; edge(sh, [c[0], by0, c[1]], [n[0], by0, n[1]], K(40), COLS.steel); edge(sh, [c[0], by1, c[1]], [n[0], by1, n[1]], K(40), COLS.steel); edge(sh, [c[0], by0, c[1]], [c[0], by1, c[1]], K(30), COLS.steel); });
+    plate(sh, [-bx, by0, -bz], [2 * bx, 0, 0], [0, 0, 2 * bz], K(1200), 4, 4, COLS.dim);
+    plate(sh, [-bx, by1, -bz], [2 * bx, 0, 0], [0, 0, 2 * bz], K(900), 4, 4, COLS.dim);
+    plate(sh, [bx, -.78, -.28], [.78, 0, 0], [0, 0, .56], K(2200), 7, 5, COLS.amber);
+    for (var d = 0; d < K(300); d++) { var dt = R(0, TAU), dr = Math.sqrt(Math.random()) * .1; sh.pt(-.14 + dr * Math.cos(dt), by0 - .03, dr * Math.sin(dt), R(1, 1.8), COLS.white); }
+    // kính: gương chính 18 mảnh lục giác mạ vàng hơi lõm, lưng gương, hai cánh gập và ba thanh đỡ gương phụ
+    sub(sh, function (v) { var w = rotXZ([v[0] * 1.2, v[1] * 1.2, v[2] * 1.2], -1.2, 0); return [w[0], w[1] + .6, w[2] + .12]; }, function () {
+      sub(sh, function (v) { return [v[0], v[1], v[2] + .1 * (v[0] * v[0] + v[1] * v[1])]; }, function () {
+        var s = .165, d2 = Math.sqrt(3) * s * 1.03, cs = [];
+        for (var k2 = 0; k2 < 6; k2++) { var a2 = k2 * Math.PI / 3; cs.push([d2 * Math.cos(a2), d2 * Math.sin(a2)]); }
+        for (var k3 = 0; k3 < 6; k3++) { var a3 = k3 * Math.PI / 3; cs.push([2 * d2 * Math.cos(a3), 2 * d2 * Math.sin(a3)]); cs.push([3 * s * 1.03 * Math.cos(a3 + Math.PI / 6), 3 * s * 1.03 * Math.sin(a3 + Math.PI / 6)]); }
+        cs.forEach(function (c) { hexFill(sh, c, s * .97, K(2200), Math.random() < .5 ? COLS.gold : COLS.hot); });
+      });
+      var fx = .8, fy = .86;                                                                    // khung lưng gương
+      [[-fx, -fy], [fx, -fy], [fx, fy], [-fx, fy]].forEach(function (c, i, arr) { var n = arr[(i + 1) % 4]; edge(sh, [c[0], c[1], -.06], [n[0], n[1], -.06], K(60), COLS.steel); edge(sh, [c[0], c[1], -.42], [n[0], n[1], -.42], K(60), COLS.steel); edge(sh, [c[0], c[1], -.06], [c[0], c[1], -.42], K(40), COLS.steel); });
+      plate(sh, [-fx, -fy, -.42], [2 * fx, 0, 0], [0, 2 * fy, 0], K(1800), 6, 8, COLS.dim);
+      [-1, 1].forEach(function (sd) { plate(sh, [sd * fx, -.5, -.3], [sd * .42, 0, -.1], [0, 1.0, 0], K(1400), 3, 5, COLS.steel); });   // hai cánh gập
+      for (var a4 = 0; a4 < 3; a4++) { var an = Math.PI / 2 + a4 * TAU / 3; edge(sh, [.66 * Math.cos(an), .66 * Math.sin(an), .06], [0, 0, 1.1], K(200), COLS.steel); }
+      for (var q2 = 0; q2 < K(500); q2++) { var tt = R(0, TAU), rr = Math.sqrt(Math.random()) * .075; sh.pt(rr * Math.cos(tt), rr * Math.sin(tt), 1.1, R(1, 2), COLS.gold); }
     });
     return sh;
   }
@@ -551,34 +565,35 @@ canvas.drag { cursor: grabbing; }
 
   /* ---------- 8. Hố đen ---------- */
   function blackhole() {
-    var sh = new Shape(), RIN = .85, ROUT = 3.2;
-    var heat = function (r) { var f = (r - RIN) / (ROUT - RIN); return f < .1 ? [.86, .93, 1] : f < .28 ? [1, .96, .8] : f < .5 ? [1, .76, .4] : f < .75 ? [1, .52, .22] : [.85, .26, .13]; };
+    var sh = new Shape(), RIN = .85, ROUT = 3.0, RS = .54;
+    var heat = function (r) { var f = Math.min(1, (r - RIN) / (ROUT - RIN)); return f < .08 ? [.9, .95, 1] : f < .22 ? [1, .97, .82] : f < .45 ? [1, .8, .45] : f < .7 ? [1, .55, .24] : [.8, .26, .13]; };
     var diskW = function (r) { return .5 * Math.pow(.95 / r, 1.5); };
-    // 1. đĩa bồi tụ: mật độ ~ 1/r, ba nhánh xoắn, quay Kepler (vòng trong nhanh nhất), nóng ở trong, nguội ở ngoài
-    for (var i = 0, n = K(52000); i < n;) {
+    // 1. đĩa bồi tụ mỏng: mật độ ~ 1/r, nhánh xoắn và vân gợn, quay Kepler (vòng trong nhanh nhất); nóng ở trong, nguội ở ngoài
+    for (var i = 0, n = K(50000); i < n;) {
       var r = RIN * Math.pow(ROUT / RIN, Math.random()), t = R(0, TAU);
-      if (Math.random() > .5 + .5 * Math.cos(3 * (t + 1.5 * Math.log(r)))) continue;
+      if (Math.random() > (.45 + .55 * Math.cos(3 * (t + 1.5 * Math.log(r)))) * (.78 + .22 * Math.sin(r * 38))) continue;
       i++; sh.M = [diskW(r), 0, 1, 0, 0, 0, 0, 2];
-      sh.pt(r * Math.cos(t), G2() * (.012 + .03 * r), r * Math.sin(t), R(.5, 1.6) * (1 + .4 / r), heat(r));
+      sh.pt(r * Math.cos(t), G2() * (.006 + .018 * r), r * Math.sin(t), R(.5, 1.5) * (1 + .5 / r), heat(r));
     }
-    // 2. ánh sáng bị uốn cong: vành photon và ảnh méo của nửa đĩa phía sau, luôn hướng về người xem
-    for (var j = 0; j < K(6000); j++) { var t2 = R(0, TAU), rr = .545 + G2() * .009; sh.M = [.3 + .2 * Math.random(), 0, 7, 0, 0, 0, 0, 1]; sh.pt(rr * Math.cos(t2), rr * Math.sin(t2), 0, R(.8, 1.6), Math.random() < .5 ? COLS.white : [1, .9, .65]); }
-    for (var k = 0, nk = K(22000); k < nk;) {
-      var r2 = .56 * Math.pow(2.85, Math.pow(Math.random(), 1.8)), t3 = R(0, TAU);
-      if (r2 > .75 && Math.random() > .15 + .85 * Math.pow(Math.sin(t3), 2)) continue;
-      k++; sh.M = [.35 * Math.pow(.6 / r2, 1.2), 0, 7, 0, 0, 0, 0, 1];
-      sh.pt(r2 * Math.cos(t3), r2 * Math.sin(t3), 0, R(.9, 2.1) * (1.2 - .3 * r2), heat(RIN + (r2 - .56) * 1.4));
+    // 2. ảnh méo của đĩa: nửa đĩa phía sau bị uốn vòng qua đỉnh và đáy bóng tối; luôn quay mặt về người xem
+    //    bán kính ảnh b = RS + (r - RIN) * (0,2 + 0,8 cos^2 psi): thu hẹp ở đỉnh, mở rộng tới mép đĩa ở xích đạo
+    for (var j = 0; j < K(42000); j++) {
+      var rr = RIN * Math.pow(ROUT / RIN, Math.pow(Math.random(), 1.3)), ps = R(0, TAU), c = Math.cos(ps), bb = RS + (rr - RIN) * (.2 + .8 * c * c);
+      sh.M = [diskW(rr) * .8, rr, 9, 0, 0, 0, 0, 1];
+      sh.pt(bb * c, bb * Math.sin(ps), 0, R(.8, 1.9) * (1.4 - .3 * rr), heat(rr));
     }
-    for (var h = 0; h < K(2200); h++) { var t4 = R(0, TAU), r4 = R(.5, 1.3); sh.M = [.15, 0, 7, 0, 0, 0, 0, 1]; sh.pt(r4 * Math.cos(t4), r4 * Math.sin(t4), 0, R(4, 8), [.32, .16, .07]); }
+    // vành photon: một đường sáng mảnh ngay sát bóng tối
+    for (var k = 0; k < K(7000); k++) { var t2 = R(0, TAU), rp = RS + .006 + G2() * .006; sh.M = [.4 + .2 * Math.random(), 0, 7, 0, 0, 0, 0, 1]; sh.pt(rp * Math.cos(t2), rp * Math.sin(t2), 0, R(.7, 1.5), Math.random() < .5 ? COLS.white : [1, .92, .7]); }
+    for (var h = 0; h < K(2400); h++) { var t3 = R(0, TAU), r3 = R(.52, 1.4); sh.M = [.15, 0, 7, 0, 0, 0, 0, 1]; sh.pt(r3 * Math.cos(t3), r3 * Math.sin(t3), 0, R(4, 8), [.3, .15, .06]); }
     // 3. hạt đa màu bị kéo dãn, xoắn ốc rơi vào chân trời sự kiện rồi tái sinh ở ngoài
     var PAL = [[.35, .8, 1], [1, .4, .85], [1, .85, .4], [.95, .97, 1], [1, .55, .25], [.65, .5, 1]];
-    for (var q = 0; q < K(26000); q++) {
-      var ro = R(2.2, 3.9), tau = Math.random(), r0 = .6 + (ro - .6) * Math.pow(1 - tau, 1.7), th = R(0, TAU), yf = G2() * .22;
+    for (var q = 0; q < K(15000); q++) {
+      var ro = R(2.2, 3.9), tau = Math.random(), r0 = .6 + (ro - .6) * Math.pow(1 - tau, 1.7), th = R(0, TAU), yf = G2() * .2;
       sh.M = [R(.05, .11), ro, 5, tau, 0, 0, 0, 2];
-      sh.pt(r0 * Math.cos(th), yf * r0, r0 * Math.sin(th), R(.7, 1.7), PAL[Math.floor(Math.random() * PAL.length)]);
+      sh.pt(r0 * Math.cos(th), yf * r0, r0 * Math.sin(th), R(.7, 1.6), PAL[Math.floor(Math.random() * PAL.length)]);
     }
-    // 4. vòng dẫn hướng nằm trong mặt phẳng đĩa
-    sh.M = null; [1.2, 1.7, 2.3, 3.0].forEach(function (rr) { circleY(sh, rr, 120); });
+    // 4. vài vòng dẫn hướng mờ trong mặt phẳng đĩa
+    sh.M = null; [1.3, 2.0, 2.7].forEach(function (rr) { circleY(sh, rr, 120); });
     return sh;
   }
 
@@ -599,15 +614,15 @@ canvas.drag { cursor: grabbing; }
   /* ---------- 0. Bụi sao ---------- */
   function dust() {
     var sh = new Shape(); sh.M = [.03, 0, 1, 0, 0, 0, 0, 0];
-    for (var i = 0; i < N; i++) { var u = Math.random() * 2 - 1, t = R(0, TAU), s = Math.sqrt(1 - u * u), r = 2.2 + Math.pow(Math.random(), .5) * 5; sh.pt(r * s * Math.cos(t), r * u * .7, r * s * Math.sin(t), R(.4, 1.2)); }
+    for (var i = 0; i < CNT; i++) { var u = Math.random() * 2 - 1, t = R(0, TAU), s = Math.sqrt(1 - u * u), r = 2.2 + Math.pow(Math.random(), .5) * 5; sh.pt(r * s * Math.cos(t), r * u * .7, r * s * Math.sin(t), R(.4, 1.2)); }
     for (var k = 0; k < NL; k++) { var a = [R(-5, 5), R(-3, 3), R(-4, 4)]; sh.seg(a, [a[0] + R(-.3, .3), a[1] + R(-.3, .3), a[2] + R(-.3, .3)]); }
     return sh;
   }
 
 
   /* ---------- Chốt hình: chọn đủ N hạt, xếp theo x cho chuyển hình mạch lạc, đóng gói thuộc tính ---------- */
-  function finalize(sh, keep) {
-    var M = N - (sh.reserve || 0), P = sh.p.length / 15, i, j, k, tmp, idx = new Uint32Array(M);
+  function finalize(sh, keep, n) {
+    var M = n - (sh.reserve || 0), P = sh.p.length / 15, i, j, k, tmp, idx = new Uint32Array(M);
     if (P >= M) { var all = new Uint32Array(P); for (i = 0; i < P; i++) all[i] = i; for (i = 0; i < M; i++) { j = i + Math.floor(Math.random() * (P - i)); tmp = all[i]; all[i] = all[j]; all[j] = tmp; idx[i] = all[i]; } }
     else { for (i = 0; i < P; i++) idx[i] = i; for (i = P; i < M; i++) idx[i] = Math.floor(Math.random() * P); }
     var keys = new Float32Array(M), ord = new Array(M);
@@ -619,10 +634,11 @@ canvas.drag { cursor: grabbing; }
       pos[i * 3] = p[o] + (jit ? R(-jit, jit) : 0); pos[i * 3 + 1] = p[o + 1] + (jit ? R(-jit, jit) : 0); pos[i * 3 + 2] = p[o + 2] + (jit ? R(-jit, jit) : 0);
       for (k = 0; k < 4; k++) { S[i * 4 + k] = p[o + 3 + k]; MA[i * 4 + k] = p[o + 7 + k]; PA[i * 4 + k] = p[o + 11 + k]; }
     }
-    for (i = M; i < N; i++) {                                   // ô trống dành cho chữ: tạm là bản sao có nhiễu
+    for (i = M; i < N; i++) {                                   // ô dành cho chữ (tạm là bản sao có nhiễu) và các hạt thừa (kích thước 0, không vẽ)
       var s0 = Math.floor(Math.random() * M);
       pos[i * 3] = pos[s0 * 3] + R(-.01, .01); pos[i * 3 + 1] = pos[s0 * 3 + 1] + R(-.01, .01); pos[i * 3 + 2] = pos[s0 * 3 + 2] + R(-.01, .01);
       for (k = 0; k < 4; k++) { S[i * 4 + k] = S[s0 * 4 + k]; MA[i * 4 + k] = MA[s0 * 4 + k]; PA[i * 4 + k] = PA[s0 * 4 + k]; }
+      if (i >= n) S[i * 4] = 0;
     }
     var G = sh.s.length / 14, sg = new Uint32Array(NL), sk = new Float32Array(NL), so = new Array(NL), q = sh.s;
     for (i = 0; i < NL; i++) { sg[i] = G ? (G >= NL ? Math.floor(Math.random() * G) : Math.min(i, G - 1)) : 0; sk[i] = G ? q[sg[i] * 14] + q[sg[i] * 14 + 3] : 0; so[i] = i; }
@@ -635,7 +651,7 @@ canvas.drag { cursor: grabbing; }
     }
     // sau khi đẩy lên card đồ họa thì bỏ bản sao trên RAM, trừ trái tim vì chữ còn phải sửa
     var A = function (arr, n) { var b = new THREE.BufferAttribute(arr, n); if (!keep && b.onUpload) b.onUpload(function () { this.array = null; }); return b; };
-    return { pos: A(pos, 3), S: A(S, 4), MA: A(MA, 4), PA: A(PA, 4), lp: A(lp, 3), lM: A(lM, 4), lP: A(lP, 4) };
+    return { n: n, pos: A(pos, 3), S: A(S, 4), MA: A(MA, 4), PA: A(PA, 4), lp: A(lp, 3), lM: A(lM, 4), lP: A(lP, 4) };
   }
 
   /* ---------- Mỗi khung hình: chính hàm này chạy thật và cũng hiện ở cửa sổ code ---------- */
@@ -692,17 +708,17 @@ canvas.drag { cursor: grabbing; }
   /* ---------- Danh sách hình: tên, mô tả, hàm dựng thật và cách dựng ---------- */
   var BASE_LC = [.45, .72, 1], PINK_LC = [1, .4, .55];
   var META = [
-    { fn: dust, file: "dust.js", name: "Bụi sao", sub: "Hạt sáng đang tụ lại", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dust(); } },
-    { fn: planet, file: "planet.js", name: "Hành tinh có vành đai", sub: "Mặt cầu tự quay, các vành quay theo định luật Kepler (vòng trong nhanh hơn), ba mặt trăng", tint: "#0a1228", tilt: [.28, .4], lc: BASE_LC, build: function () { return planet(); } },
-    { fn: solar, file: "solar_system.js", name: "Hệ Mặt Trời", sub: "Mặt Trời, tám hành tinh với màu sắc thật, Mặt Trăng, vành Sao Thổ và vành đai tiểu hành tinh; bật Chuyển động để thấy chúng quay quanh nhau", tint: "#0c1020", tilt: [.42, 0], zoom: .68, lc: [.18, .28, .55], build: function () { return solar(); } },
-    { fn: iss, file: "iss.js", name: "Trạm vũ trụ quốc tế (ISS)", sub: "Dài khoảng 109 m, bay ở độ cao khoảng 400 km, mỗi ngày quay quanh Trái Đất khoảng 16 vòng", tint: "#08172b", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(iss); } },
-    { fn: starship, file: "starship.js", name: "Starship và Super Heavy", sub: "Cao khoảng 121 m, đường kính 9 m, bộ tên lửa tái sử dụng hoàn toàn của SpaceX", tint: "#10151f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(starship); } },
-    { fn: saturnV, file: "saturn_v.js", name: "Saturn V", sub: "Cao 110,6 m, đưa người Mỹ lên Mặt Trăng trong chương trình Apollo", tint: "#18130f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(saturnV); } },
-    { fn: jwst, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(jwst); } },
-    { fn: galaxy, file: "galaxy.js", name: "Thiên hà xoắn ốc", sub: "Bốn cánh tay xoắn ốc quanh nhân sáng, giống dải Ngân Hà của chúng ta", tint: "#150b24", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(galaxy); } },
-    { fn: blackhole, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.45, .05], lc: [1, .6, .25], build: function () { return blackhole(); } },
-    { fn: sputnik, file: "sputnik.js", name: "Sputnik 1", sub: "Vệ tinh nhân tạo đầu tiên, phóng năm 1957, hình cầu rộng khoảng 58 cm", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(sputnik); } },
-    { fn: heart, file: "heart.js", name: "Trái tim đập", sub: "Một quả tim đập theo từng nhịp thật: bạn chọn trạng thái, chỉnh tốc độ và viết chữ nổi 3D vào bên trong tim", tint: "#200a14", tilt: [0, 0], lc: PINK_LC, build: function () { return heart(); } }
+    { fn: dust, n: 100000, file: "dust.js", name: "Bụi sao", sub: "Hạt sáng đang tụ lại", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dust(); } },
+    { fn: planet, n: 100000, file: "planet.js", name: "Hành tinh có vành đai", sub: "Mặt cầu tự quay, các vành quay theo định luật Kepler (vòng trong nhanh hơn), ba mặt trăng", tint: "#0a1228", tilt: [.28, .4], lc: BASE_LC, build: function () { return dbl(planet); } },
+    { fn: solar, n: 200000, file: "solar_system.js", name: "Hệ Mặt Trời", sub: "Mặt Trời, tám hành tinh với màu sắc thật, Mặt Trăng, vành Sao Thổ và vành đai tiểu hành tinh; bật Chuyển động để thấy chúng quay quanh nhau", tint: "#0c1020", tilt: [.42, 0], zoom: .68, lc: [.18, .28, .55], build: function () { return dbl(solar); } },
+    { fn: iss, n: 200000, file: "iss.js", name: "Trạm vũ trụ quốc tế (ISS)", sub: "Dài khoảng 109 m, bay ở độ cao khoảng 400 km, mỗi ngày quay quanh Trái Đất khoảng 16 vòng", tint: "#08172b", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(iss); } },
+    { fn: starship, n: 200000, file: "starship.js", name: "Starship và Super Heavy", sub: "Cao khoảng 121 m, đường kính 9 m, bộ tên lửa tái sử dụng hoàn toàn của SpaceX", tint: "#10151f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(starship); } },
+    { fn: saturnV, n: 200000, file: "saturn_v.js", name: "Saturn V", sub: "Cao 110,6 m, đưa người Mỹ lên Mặt Trăng trong chương trình Apollo", tint: "#18130f", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(saturnV); } },
+    { fn: jwst, n: 120000, file: "jwst.js", name: "Kính thiên văn James Webb", sub: "Gương chính 6,5 m gồm 18 mảnh mạ vàng, đặt cách Trái Đất khoảng 1,5 triệu km", tint: "#19150a", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(jwst); } },
+    { fn: galaxy, n: 200000, file: "galaxy.js", name: "Thiên hà xoắn ốc", sub: "Bốn cánh tay xoắn ốc quanh nhân sáng, giống dải Ngân Hà của chúng ta", tint: "#150b24", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(galaxy); } },
+    { fn: blackhole, n: 200000, file: "black_hole.js", name: "Hố đen", sub: "Bóng tối ở giữa, đĩa vật chất xoay quanh, ánh sáng bị uốn cong thành vành, hạt bị kéo dãn rơi vào trong", tint: "#1a0d08", tilt: [.45, .05], lc: [1, .6, .25], build: function () { return dbl(blackhole); } },
+    { fn: sputnik, n: 100000, file: "sputnik.js", name: "Sputnik 1", sub: "Vệ tinh nhân tạo đầu tiên, phóng năm 1957, hình cầu rộng khoảng 58 cm", tint: "#0a1226", tilt: [0, 0], lc: BASE_LC, build: function () { return dbl(sputnik); } },
+    { fn: heart, n: 120000, file: "heart.js", name: "Trái tim đập", sub: "Một quả tim đập theo từng nhịp thật: bạn chọn trạng thái, chỉnh tốc độ và viết chữ nổi 3D vào bên trong tim", tint: "#200a14", tilt: [0, 0], lc: PINK_LC, build: function () { return heart(); } }
   ];
   var HI = META.length - 1, NS = META.length - 1;
 
@@ -753,7 +769,7 @@ canvas.drag { cursor: grabbing; }
     conL.appendChild(d); while (conL.children.length > 10) conL.removeChild(conL.firstChild);
   }
   function logFor(text) {                                            // dòng nào có số hạt thì ghi vào bảng log
-    var c = /K\((\d[\d_]*)\)/.exec(text), cnt = c ? Math.round(+c[1] * D) : 0;
+    var c = /K\((\d[\d_]*)\)/.exec(text), cnt = c ? Math.round(+c[1] * META[curMeta].n / 100000) : 0;
     if (!cnt) { var c2 = /[,(]\s*(\d{4,6})\s*[,)]/.exec(text); cnt = c2 ? +c2[1] : 0; }
     if (cnt < 500) return null;
     var nm = /\b(?!for|if|Math|function|K|R|G2)([a-zA-Z]\w*)\(/.exec(text);
@@ -784,9 +800,10 @@ canvas.drag { cursor: grabbing; }
     "  fade=smoothstep(INR,INR+.16,rr)*smoothstep(0.,.05,tau);return vec3(rr*cos(th),yf*rr,rr*sin(th));}",
     " if(k<6.5){float s=fract(M.y+M.x*t);fade=pow(1.-s,1.4)*smoothstep(0.,.04,s);return p+P.xyz*((s-M.y)*M.w);}",
     " if(k<7.5){float c=cos(M.x*t),s=sin(M.x*t);return vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);}",
-    " float s=fract(M.y+M.x*t);fade=pow(1.-s,1.3)*smoothstep(0.,.06,s);float Rn=P.x+s*P.y;return p*(Rn/max(length(p),.001));",
+    " if(k<8.5){float s=fract(M.y+M.x*t);fade=pow(1.-s,1.3)*smoothstep(0.,.06,s);float Rn=P.x+s*P.y;return p*(Rn/max(length(p),.001));}",
+    " float ps=atan(p.y,p.x)+M.x*t,cc=cos(ps);float bb=.54+(M.y-.85)*(.2+.8*cc*cc);return vec3(bb*cc,bb*sin(ps),0.);",
     "}",
-    "vec3 place(vec3 p,vec4 M,vec4 P,vec2 tl,float t,out float fade){vec3 q=motion(p,M,P,t,fade);if(abs(P.w-1.)<.5)return uCR*q.x+uCU*q.y+uCF*q.z;return tilt(q,tl);}"
+    "uniform float uRot;vec3 place(vec3 p,vec4 M,vec4 P,vec2 tl,float t,out float fade){vec3 q=motion(p,M,P,t,fade);if(abs(P.w-1.)<.5)return uCR*q.x+uCU*q.y+uCF*q.z;return tilt(rotY(q,uRot),tl);}"
   ].join("\n");
 
   /* ================= Cảnh Three.js ================= */
@@ -797,7 +814,7 @@ canvas.drag { cursor: grabbing; }
   var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(45, 1, .1, 120);
   var root = new THREE.Group(); scene.add(root);
   var shapes = [], motionOn = false, monS = 0;
-  function getShape(i) { if (!shapes[i]) shapes[i] = finalize(META[i].build(), i === HI); return shapes[i]; }
+  function getShape(i) { if (!shapes[i]) { CNT = META[i].n; D = CNT / 100000; shapes[i] = finalize(META[i].build(), i === HI, CNT); } return shapes[i]; }
   var V3 = function (a, b, c) { return new THREE.Vector3(a, b, c); };
   var U = { uMix: { value: 0 }, uTime: { value: 0 }, uMT: { value: 0 }, uMon: { value: 0 }, uPx: { value: dpr }, uRot: { value: 0 }, uShadow: { value: .5 },
     uTA: { value: new THREE.Vector2() }, uTB: { value: new THREE.Vector2() }, uCR: { value: V3(1, 0, 0) }, uCU: { value: V3(0, 1, 0) }, uCF: { value: V3(0, 0, 1) },
@@ -810,7 +827,7 @@ canvas.drag { cursor: grabbing; }
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: [
       "attribute vec3 aA;attribute vec3 aB;attribute vec4 aSA;attribute vec4 aSB;attribute vec4 aMA;attribute vec4 aMB;attribute vec4 aPA;attribute vec4 aPB;attribute float aR;",
-      "uniform float uMix,uTime,uMT,uMon,uPx,uRot,uBeat,uHA,uHB,uShadow;uniform vec2 uTA,uTB;varying vec3 vCol;varying float vAl;varying vec3 vSt;",
+      "uniform float uMix,uTime,uMT,uMon,uPx,uBeat,uHA,uHB,uShadow;uniform vec2 uTA,uTB;varying vec3 vCol;varying float vAl;varying vec3 vSt;",
       GLM,
       "void main(){float m=clamp((uMix-aR*.45)/.55,0.,1.);m=m*m*(3.-2.*m);float sw=sin(3.14159*m);",
       " float fa,fb,f2;vec3 pa=place(aA,aMA,aPA,uTA,uMT,fa),pb=place(aB,aMB,aPB,uTB,uMT,fb);vec3 p=mix(pa,pb,m);",
@@ -818,11 +835,12 @@ canvas.drag { cursor: grabbing; }
       " if(sA+sB>.5){vec3 qa=place(aA,aMA,aPA,uTA,uMT+.08,f2),qb=place(aB,aMB,aPB,uTB,uMT+.08,f2);dp=mix((qa-pa)*sA,(qb-pb)*sB,m);}",
       " p+=vec3(sin(aR*61.+uTime*1.7),cos(aR*43.+uTime*1.3),sin(aR*29.-uTime*1.5))*sw*.55;",
       " p+=vec3(sin(uTime*.9+aR*91.),cos(uTime*.8+aR*57.),sin(uTime*1.1+aR*33.))*.004;p*=1.+mix(uHA,uHB,m)*uBeat*.085;",
-      " p=rotY(p,uRot);dp=rotY(dp,uRot);",
+      "",
       " float occ=mix(step(1.5,aPA.w)*step(aPA.w,2.5),step(1.5,aPB.w)*step(aPB.w,2.5),m);",
       " vec3 vv=(modelViewMatrix*vec4(vec3(p.z,0.,-p.x),0.)).xyz;float dop=clamp(vv.z/(length(vv)+1e-4),-1.,1.)*occ;",
       " vec4 mv=modelViewMatrix*vec4(p,1.);vec3 cv=(modelViewMatrix*vec4(0.,0.,0.,1.)).xyz;float sc=length(modelViewMatrix[0].xyz);",
       " float dist=length(mv.xy/mv.z-cv.xy/cv.z)*-cv.z;",
+      " dop+=mix(step(.5,aPA.w)*step(aPA.w,1.5),step(.5,aPB.w)*step(aPB.w,1.5),m)*step(8.5,mix(aMA.z,aMB.z,m))*clamp(-(mv.x-cv.x)/(.9*sc),-1.,1.);",
       " float vis=1.-occ*step(mv.z,cv.z)*(1.-smoothstep(uShadow*sc*.96,uShadow*sc*1.05,dist));",
       " vec4 S=mix(aSA,aSB,m);vCol=S.yzw*vec3(1.-.2*dop,1.-.04*dop,1.+.3*dop)*(1.+.6*dop);",
       " vAl=(.72+.28*sin(uTime*2.2+aR*140.))*vis*mix(1.,mix(fa,fb,m),uMon);",
@@ -846,12 +864,12 @@ canvas.drag { cursor: grabbing; }
     uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: [
       "attribute vec3 aA;attribute vec3 aB;attribute vec4 aMA;attribute vec4 aMB;attribute vec4 aPA;attribute vec4 aPB;attribute float aR;",
-      "uniform float uMix,uTime,uMT,uMon,uRot,uBeat,uHA,uHB;uniform vec2 uTA,uTB;uniform vec3 uLA,uLB;varying float vF;varying vec3 vC;",
+      "uniform float uMix,uTime,uMT,uMon,uBeat,uHA,uHB;uniform vec2 uTA,uTB;uniform vec3 uLA,uLB;varying float vF;varying vec3 vC;",
       GLM,
       "void main(){float m=clamp((uMix-aR*.45)/.55,0.,1.);m=m*m*(3.-2.*m);float sw=sin(3.14159*m);",
       " float fa,fb;vec3 p=mix(place(aA,aMA,aPA,uTA,uMT,fa),place(aB,aMB,aPB,uTB,uMT,fb),m);",
       " p+=vec3(sin(aR*61.+uTime*1.7),cos(aR*43.+uTime*1.3),sin(aR*29.-uTime*1.5))*sw*.55;",
-      " p*=1.+mix(uHA,uHB,m)*uBeat*.085;p=rotY(p,uRot);vC=mix(uLA,uLB,m);vF=(1.-.6*sw)*(1.-.5*mix(uHA,uHB,m))*mix(1.,mix(fa,fb,m),uMon);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}"
+      " p*=1.+mix(uHA,uHB,m)*uBeat*.085;vC=mix(uLA,uLB,m);vF=(1.-.6*sw)*(1.-.5*mix(uHA,uHB,m))*mix(1.,mix(fa,fb,m),uMon);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}"
     ].join("\n"),
     fragmentShader: "precision mediump float;varying float vF;varying vec3 vC;void main(){gl_FragColor=vec4(vC,.2*vF);}"
   });
@@ -889,10 +907,9 @@ canvas.drag { cursor: grabbing; }
   var qI = new THREE.Quaternion(), vT = new THREE.Vector3();
   function camAxes() {
     camera.updateMatrixWorld(); qI.copy(root.quaternion).invert();
-    var c = Math.cos(-U.uRot.value), s = Math.sin(-U.uRot.value);
     [[0, U.uCR], [1, U.uCU], [2, U.uCF]].forEach(function (a) {
       vT.setFromMatrixColumn(camera.matrixWorld, a[0]).applyQuaternion(qI);
-      a[1].value.set(c * vT.x + s * vT.z, vT.y, -s * vT.x + c * vT.z);
+      a[1].value.copy(vT);
     });
   }
 
@@ -905,6 +922,7 @@ canvas.drag { cursor: grabbing; }
     pg.setAttribute("aA", A.pos); pg.setAttribute("aB", B.pos); pg.setAttribute("aSA", A.S); pg.setAttribute("aSB", B.S);
     pg.setAttribute("aMA", A.MA); pg.setAttribute("aMB", B.MA); pg.setAttribute("aPA", A.PA); pg.setAttribute("aPB", B.PA);
     lg.setAttribute("aA", A.lp); lg.setAttribute("aB", B.lp); lg.setAttribute("aMA", A.lM); lg.setAttribute("aMB", B.lM); lg.setAttribute("aPA", A.lP); lg.setAttribute("aPB", B.lP);
+    pg.setDrawRange(0, Math.max(A.n, B.n));
     U.uHA.value = a === HI ? 1 : 0; U.uHB.value = b === HI ? 1 : 0;
     U.uTA.value.set(ma.tilt[0], ma.tilt[1]); U.uTB.value.set(mb.tilt[0], mb.tilt[1]);
     U.uLA.value.set(ma.lc[0], ma.lc[1], ma.lc[2]); U.uLB.value.set(mb.lc[0], mb.lc[1], mb.lc[2]);
@@ -919,7 +937,7 @@ canvas.drag { cursor: grabbing; }
   function nextOf(i) { return i % NS + 1; }
   function goTo(i) { if (state === "hold" && i !== cur) startMorph(i); }
   /* ===== Trái tim: nhịp đập chạy thật, chữ trong tim, menu ===== */
-  var Nm = N - HRES;
+  var Nm = HN - HRES;
   var hm = document.getElementById("hm"), bHeart = document.getElementById("bHeart"), ecgBox = document.getElementById("ecg"), ecgC = document.getElementById("ecgC");
   var ecgBpm = document.getElementById("ecgBpm"), ecgMode = document.getElementById("ecgMode"), hmText = document.getElementById("hmText"), hmBpm = document.getElementById("hmBpm"), hmBpmOut = document.getElementById("hmBpmOut");
   var hmChips = document.getElementById("hmChips"), hmSound = document.getElementById("hmSound"), hmEcg = document.getElementById("hmEcg");
@@ -1040,7 +1058,7 @@ canvas.drag { cursor: grabbing; }
         var sc = 1;
         for (var tr = 0; tr < 4; tr++) { sc = [1, .85, .72, .6][tr]; var out = 0; for (var q = 0; q < px.length; q += 7) { var X = (px[q][0] - 460) / 400 * sc / HK, Y = (.2 - (px[q][1] - 260) / 400 * sc) / HK - 2.5; if (heartS(X, Y) > .86) out++; } if (out / (px.length / 7) < .06) break; }
         var cap = Math.floor(HRES / LAY), step = Math.max(1, px.length / cap), slot = Nm, PK = [[1, .96, .98], [1, .72, .84], [1, .62, .78], [1, .72, .84], [1, .96, .98]];
-        for (var f = 0; f < px.length && slot + LAY <= N; f += step) {
+        for (var f = 0; f < px.length && slot + LAY <= HN; f += step) {
           var p = px[Math.floor(f)], gx = (p[0] - 460) / 400 * sc, gy = .2 - (p[1] - 260) / 400 * sc, X2 = gx / HK, Y2 = gy / HK - 2.5, s2 = heartS(X2, Y2);
           if (s2 > .9) continue;
           var zs = HTH * Math.sqrt(Math.max(0, 1 - s2 * s2)) * HDIMPLE(X2, Y2), half = Math.min(.085, zs * .7);   // độ dày chữ nằm trọn trong lòng tim
@@ -1104,8 +1122,8 @@ canvas.drag { cursor: grabbing; }
     if (state === "morph") {
       mixT += dt / DUR; var p = Math.min(mixT, 1); U.uMix.value = p;
       var cnt = runIdx.length, k = Math.min(cnt - 1, Math.floor(p * cnt * 1.02)); if (k > execK) runTo(k);
-      conPts.textContent = Math.round(p * N).toLocaleString("vi-VN"); conBar.style.width = (p * 100).toFixed(1) + "%";
-      if (mixT >= 1) { runTo(cnt - 1); cur = nxt; bind(cur, cur); U.uMix.value = 0; state = "hold"; holdT = 0; if (cur === HI && !hmOpened) { hmOpened = true; openMenu(true); } conPts.textContent = N.toLocaleString("vi-VN"); conBar.style.width = "100%"; }
+      conPts.textContent = Math.round(p * Math.max(META[cur].n, META[nxt].n)).toLocaleString("vi-VN"); conBar.style.width = (p * 100).toFixed(1) + "%";
+      if (mixT >= 1) { runTo(cnt - 1); cur = nxt; bind(cur, cur); U.uMix.value = 0; state = "hold"; holdT = 0; if (cur === HI && !hmOpened) { hmOpened = true; openMenu(true); } conPts.textContent = META[cur].n.toLocaleString("vi-VN"); conBar.style.width = "100%"; }
     } else {
       if (auto && T - lastAct > 5 && !hmOpen) holdT += dt;
       if (holdT > HOLD) startMorph(nextOf(cur));

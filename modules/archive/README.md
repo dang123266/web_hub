@@ -30,3 +30,6 @@ Có thể thêm `sha256` để người tải kiểm tra file.
     draft: false
     ---
     Nội dung mô tả (tùy chọn).
+
+## Ảnh xem trước và nút tải
+Thêm `image: "/duong-dan/anh.jpg"` để hiện ảnh nhỏ trong danh sách và trên trang mục. Một mục có thể có nhiều nút trong `files`; thêm `download: true` để bấm là tải về thay vì mở.
