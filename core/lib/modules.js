@@ -47,7 +47,7 @@ export function getProjects() {
 
 // ---- Bộ sưu tập (collection): mô-đun khai báo "collection" trong module.json thì mỗi file
 // modules/<id>/items/*.md là một mục có trang riêng và hiện trong trang tìm kiếm của mô-đun.
-const toDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d ?? ''));
+const toDate = (d) => (d && typeof d.toISOString === 'function' ? d.toISOString().slice(0, 10) : String(d ?? '').slice(0, 10));
 
 export function getItems(dir) {
   return Object.entries(itemFiles)
@@ -62,6 +62,7 @@ export function getItems(dir) {
         type: String(fm.type ?? ''),
         tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
         summary: String(fm.summary ?? ''),
+        image: fm.image ? fileUrl(String(fm.image)) : '',
         files: Array.isArray(fm.files) ? fm.files : [],
         draft: !!fm.draft,
         Content: m.Content,

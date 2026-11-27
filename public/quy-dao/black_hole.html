@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng Hố Đen 3D Bằng Hạt (GPU WebGL)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020308;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(10, 14, 28, 0.70);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.8);
+        }
+
+        input[type="range"].cosmic-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(30, 41, 59, 0.9);
+            height: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(251, 146, 60, 0.28);
+        }
+        input[type="range"].cosmic-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fb923c;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(251, 146, 60, 0.85);
+            transition: transform 0.15s ease;
+        }
+        input[type="range"].cosmic-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+        }
+
+        #sim-control-panel::-webkit-scrollbar {
+            width: 5px;
+        }
+        #sim-control-panel::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <!-- Full-viewport 3D WebGL Container -->
+    <div id="blackhole-webgl-container" class="fixed inset-0 w-full h-full bg-[#020308] cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Top Header -->
+    <header class="fixed top-4 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
+        <div class="glass-panel rounded-2xl px-4 py-3 border border-orange-400/25 pointer-events-auto">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse"></span>
+                <h1 class="font-display font-bold text-sm sm:text-base text-white tracking-wide">
+                    MÔ PHỎNG HỐ ĐEN 3D BẰNG HẠT (KERR / SCHWARZSCHILD)
+                </h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-xs font-mono">
+                <span id="sim-particle-badge" class="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-400/30 font-semibold">
+                    1,000,000 Particles
+                </span>
+                <span id="sim-fps-counter" class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                    -- FPS • GPU WebGL
+                </span>
+                <span id="sim-target-label" class="text-slate-300 hidden md:inline">
+                    Góc nhìn: Toàn cảnh Hố Đen & Đĩa Bồi Tụ
+                </span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="download-btn" title="Tải file HTML mô phỏng hố đen" class="glass-panel hover:bg-orange-600/35 border-orange-400/30 text-orange-200 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span class="hidden sm:inline">Tải HTML</span>
+            </button>
+            <button id="fullscreen-btn" title="Toàn màn hình (F)" class="glass-panel hover:bg-slate-800/80 text-slate-200 p-2 rounded-full transition cursor-pointer">
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Collapsible Control Panel -->
+    <aside class="fixed top-24 right-4 z-30 flex flex-col items-end pointer-events-none">
+        <button id="toggle-sim-panel-btn" class="pointer-events-auto glass-panel hover:bg-slate-800/90 border border-orange-400/35 text-orange-200 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-lg transition cursor-pointer mb-2">
+            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            <span id="toggle-sim-panel-text">Thu Gọn</span>
+        </button>
+
+        <div id="sim-control-panel" class="pointer-events-auto glass-panel rounded-3xl p-4 sm:p-5 w-72 sm:w-80 border border-orange-500/25 shadow-2xl space-y-4 max-h-[74vh] overflow-y-auto">
+            <!-- Orbital Speed Control -->
+            <div>
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Tốc độ quay đĩa bồi tụ</span>
+                    <span id="sim-speed-val" class="font-mono font-bold text-orange-300">12x</span>
+                </div>
+                <input id="sim-speed-slider" type="range" min="0" max="120" step="1" value="12" class="cosmic-slider w-full">
+                <div class="grid grid-cols-4 gap-1 mt-2">
+                    <button onclick="setSimSpeed(0)" class="text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">Tạm dừng</button>
+                    <button onclick="setSimSpeed(12)" class="text-[11px] py-1 rounded-lg bg-orange-500/25 text-orange-200 border border-orange-400/50 font-semibold transition cursor-pointer">12x</button>
+                    <button onclick="setSimSpeed(40)" class="text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">40x</button>
+                    <button onclick="setSimSpeed(90)" class="text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">90x</button>
+                </div>
+            </div>
+
+            <!-- Particle Count Selector (250K / 500K / 1M / 2M+) -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Số lượng hạt mô phỏng</span>
+                    <span id="sim-particle-label" class="font-mono font-bold text-orange-300">1,000,000</span>
+                </div>
+                <div class="grid grid-cols-4 gap-1">
+                    <button onclick="setParticleCount(250000)" data-pcount="250000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-500/25 text-slate-300 border border-slate-700 font-mono transition cursor-pointer">250K</button>
+                    <button onclick="setParticleCount(500000)" data-pcount="500000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-500/25 text-slate-300 border border-slate-700 font-mono transition cursor-pointer">500K</button>
+                    <button onclick="setParticleCount(1000000)" data-pcount="1000000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-orange-500/25 text-orange-200 border border-orange-400/50 font-mono font-semibold transition cursor-pointer">1M</button>
+                    <button onclick="setParticleCount(2000000)" data-pcount="2000000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/25 text-purple-200 border border-purple-400/40 font-mono transition cursor-pointer">2M+</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1.5 leading-snug">
+                    Mức <span class="text-purple-300 font-semibold">2M+</span> tăng mật độ tia tương đối tính, vành photon uốn cong & sao bị hút xoắn ốc.
+                </p>
+            </div>
+
+            <!-- Gravitational Lensing / Warp Strength -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Thấu kính hấp dẫn & Lật sáng</span>
+                    <span id="sim-lens-val" class="font-mono font-bold text-amber-300">100%</span>
+                </div>
+                <input id="sim-lens-slider" type="range" min="0" max="150" step="1" value="100" class="cosmic-slider w-full">
+                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Phẳng cơ bản</span>
+                    <span>Uốn cong không-thời gian</span>
+                </div>
+            </div>
+
+            <!-- Camera Focus Presets -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="text-xs text-slate-300 font-medium mb-2">Tiêu điểm Camera (Focus)</div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="focusBlackHoleTarget('overview')" data-focus="overview" class="focus-btn col-span-2 text-left px-3 py-1.5 rounded-xl bg-orange-500/25 border border-orange-400/50 text-orange-200 text-xs font-semibold transition cursor-pointer">
+                        🕳️ Toàn cảnh Hố Đen & Đĩa Bồi Tụ
+                    </button>
+                    <button onclick="focusBlackHoleTarget('horizon')" data-focus="horizon" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        ⚫ Chân Trời Sự Kiện
+                    </button>
+                    <button onclick="focusBlackHoleTarget('photon')" data-focus="photon" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        💫 Vành Photon Sáng
+                    </button>
+                    <button onclick="focusBlackHoleTarget('disk')" data-focus="disk" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🔥 Dòng Khí Nóng Bồi Tụ
+                    </button>
+                    <button onclick="focusBlackHoleTarget('jets')" data-focus="jets" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        ⚡ Tia Plasma Hai Cực
+                    </button>
+                </div>
+            </div>
+
+            <!-- Particle Allocation Breakdown -->
+            <div class="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 space-y-1">
+                <div class="flex justify-between"><span>• Chân trời sự kiện & Vành Photon:</span><span id="bd-horizon" class="text-amber-300 font-mono">120,000</span></div>
+                <div class="flex justify-between"><span>• Đĩa bồi tụ xoắn ốc & Doppler:</span><span id="bd-disk" class="text-orange-300 font-mono">460,000</span></div>
+                <div class="flex justify-between"><span>• Ánh sáng đĩa uốn cong phía sau:</span><span id="bd-lensed" class="text-yellow-200 font-mono">180,000</span></div>
+                <div class="flex justify-between"><span>• Dòng vật chất rơi & Tia cực:</span><span id="bd-jets" class="text-cyan-300 font-mono">140,000</span></div>
+                <div class="flex justify-between"><span>• Sao nền & Bụi ngân hà:</span><span id="bd-stars" class="text-purple-300 font-mono">100,000</span></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Bottom Controls Hint -->
+    <footer class="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+        <div class="px-4 py-1.5 rounded-full bg-slate-950/75 border border-slate-800 text-[11px] text-slate-400 backdrop-blur-md whitespace-nowrap">
+            Chuột trái: Xoay 360° • Lăn chuột / Chụm ngón: Zoom • Chuột phải: Di chuyển • Phím F: Toàn màn hình
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed bottom-14 right-4 z-50 glass-panel border-orange-400/40 text-orange-100 px-4 py-2.5 rounded-2xl shadow-2xl transform translate-x-full opacity-0 transition-all duration-300 flex items-center gap-2.5 text-xs">
+        <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+        <span id="toast-message">Thông báo</span>
+    </div>
+
+    <script>
+        /* -----------------------------------------------------------
+           UI UTILITIES: TOAST, FULLSCREEN & DOWNLOAD
+        ----------------------------------------------------------- */
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            if (!toast || !toastMsg) return;
+            toastMsg.textContent = message;
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }, 3000);
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    showToast('Trình duyệt không hỗ trợ chế độ toàn màn hình ở khung này.');
+                });
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullScreen);
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'f') toggleFullScreen();
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            try {
+                const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Mo_Phong_Ho_Den_3D.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Đã tải xuống file mô phỏng hố đen 3D thành công!');
+            } catch (err) {
+                showToast('Không thể tải trực tiếp, hãy nhấn Ctrl+S để lưu trang.');
+            }
+        });
+
+        /* -----------------------------------------------------------
+           3D PARTICLE BLACK HOLE ENGINE (THREE.JS + CUSTOM GLSL)
+        ----------------------------------------------------------- */
+        let bhScene, bhCamera, bhRenderer, bhSolidMat, bhGlowMat;
+        let bhPointsObjects = [];
+        let bhParticleCount = 1000000;
+        let bhTime = 0.0;
+        let bhSpeed = 12.0;
+        let bhLensStrength = 1.0;
+        let bhFocusTarget = 'overview';
+
+        const EVENT_HORIZON_R = 6.4;
+        const PHOTON_SPHERE_R = 7.3;
+
+        const camState = {
+            theta: 0.42,
+            phi: 1.28,
+            radius: 56,
+            targetRadius: 56,
+            targetTheta: 0.42,
+            targetPhi: 1.28,
+            lookAt: new THREE.Vector3(0, 0, 0),
+            panOffset: new THREE.Vector3(0, 0, 0),
+            isDragging: false,
+            isPanning: false,
+            prevX: 0,
+            prevY: 0,
+            pinchDist: 0
+        };
+
+        document.getElementById('toggle-sim-panel-btn').addEventListener('click', () => {
+            const panel = document.getElementById('sim-control-panel');
+            const label = document.getElementById('toggle-sim-panel-text');
+            panel.classList.toggle('hidden');
+            label.textContent = panel.classList.contains('hidden') ? 'Mở Điều Khiển' : 'Thu Gọn';
+        });
+
+        const simSpeedSlider = document.getElementById('sim-speed-slider');
+        const simSpeedVal = document.getElementById('sim-speed-val');
+        function setSimSpeed(val) {
+            bhSpeed = parseFloat(val);
+            if (simSpeedSlider) simSpeedSlider.value = bhSpeed;
+            if (simSpeedVal) simSpeedVal.textContent = bhSpeed === 0 ? 'Tạm dừng' : `${bhSpeed}x`;
+        }
+        if (simSpeedSlider) {
+            simSpeedSlider.addEventListener('input', (e) => setSimSpeed(e.target.value));
+        }
+
+        const simLensSlider = document.getElementById('sim-lens-slider');
+        const simLensVal = document.getElementById('sim-lens-val');
+        if (simLensSlider) {
+            simLensSlider.addEventListener('input', (e) => {
+                const pct = parseFloat(e.target.value);
+                bhLensStrength = pct / 100.0;
+                if (simLensVal) simLensVal.textContent = `${Math.round(pct)}%`;
+            });
+        }
+
+        function focusBlackHoleTarget(targetKey) {
+            bhFocusTarget = targetKey;
+            camState.panOffset.set(0, 0, 0);
+
+            const presets = {
+                overview: { r: 56, phi: 1.28, label: `Toàn cảnh Hố Đen (${bhParticleCount.toLocaleString('en-US')} Hạt)` },
+                horizon:  { r: 15.5, phi: 1.46, label: 'Chân Trời Sự Kiện (Event Horizon)' },
+                photon:   { r: 19.5, phi: 1.42, label: 'Vành Photon & Thấu Kính Hấp Dẫn' },
+                disk:     { r: 34, phi: 1.14, label: 'Đĩa Bồi Tụ Khí Nóng Xoắn Ốc' },
+                jets:     { r: 58, phi: 1.42, label: 'Tia Plasma Tương Đối Tính Hai Cực' }
+            };
+
+            const cfg = presets[targetKey] || presets.overview;
+            camState.targetRadius = cfg.r;
+            camState.targetPhi = cfg.phi;
+
+            const labelEl = document.getElementById('sim-target-label');
+            if (labelEl) labelEl.textContent = `Góc nhìn: ${cfg.label}`;
+
+            document.querySelectorAll('.focus-btn').forEach(btn => {
+                if (btn.getAttribute('data-focus') === targetKey) {
+                    btn.classList.remove('bg-slate-800/75', 'border-slate-700', 'text-slate-200');
+                    btn.classList.add('bg-orange-500/25', 'border-orange-400/50', 'text-orange-200', 'font-semibold');
+                } else {
+                    btn.classList.remove('bg-orange-500/25', 'border-orange-400/50', 'text-orange-200', 'font-semibold');
+                    btn.classList.add('bg-slate-800/75', 'border-slate-700', 'text-slate-200');
+                }
+            });
+        }
+
+        function updateParticleUI(totalCount) {
+            const badgeEl = document.getElementById('sim-particle-badge');
+            const labelEl = document.getElementById('sim-particle-label');
+            if (badgeEl) badgeEl.textContent = `${totalCount.toLocaleString('en-US')} Particles`;
+            if (labelEl) labelEl.textContent = totalCount.toLocaleString('en-US');
+
+            document.querySelectorAll('.pcount-btn').forEach(btn => {
+                const val = parseInt(btn.getAttribute('data-pcount'), 10);
+                btn.classList.remove(
+                    'bg-orange-500/25', 'text-orange-200', 'border-orange-400/50', 'font-semibold',
+                    'bg-purple-500/25', 'text-purple-200', 'border-purple-400/40'
+                );
+                btn.classList.add('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+
+                if (val === totalCount) {
+                    if (val >= 2000000) {
+                        btn.classList.remove('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+                        btn.classList.add('bg-purple-500/25', 'text-purple-200', 'border-purple-400/40', 'font-semibold');
+                    } else {
+                        btn.classList.remove('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+                        btn.classList.add('bg-orange-500/25', 'text-orange-200', 'border-orange-400/50', 'font-semibold');
+                    }
+                }
+            });
+
+            const ratio = totalCount / 1000000;
+            const hN = Math.round(120000 * ratio);
+            const dN = Math.round(460000 * ratio);
+            const lN = Math.round(180000 * ratio);
+            const jN = Math.round(140000 * ratio);
+            const sN = Math.max(0, totalCount - (hN + dN + lN + jN));
+
+            const setText = (id, v) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = v.toLocaleString('en-US');
+            };
+            setText('bd-horizon', hN);
+            setText('bd-disk', dN);
+            setText('bd-lensed', lN);
+            setText('bd-jets', jN);
+            setText('bd-stars', sN);
+        }
+
+        function setParticleCount(newCount) {
+            if (![250000, 500000, 1000000, 2000000].includes(newCount)) return;
+            bhParticleCount = newCount;
+            updateParticleUI(bhParticleCount);
+            buildBlackHole(bhParticleCount);
+            showToast(`Đã chuyển mô phỏng hố đen sang ${bhParticleCount.toLocaleString('en-US')} hạt!`);
+        }
+
+        function clearBlackHoleObjects() {
+            if (bhScene && bhPointsObjects.length > 0) {
+                bhPointsObjects.forEach(obj => {
+                    bhScene.remove(obj.points);
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) obj.material.dispose();
+                });
+            }
+            bhPointsObjects = [];
+        }
+
+        function buildBlackHole(totalParticles) {
+            const container = document.getElementById('blackhole-webgl-container');
+            if (!container) return;
+
+            const width = container.clientWidth || window.innerWidth;
+            const height = container.clientHeight || window.innerHeight;
+
+            if (!bhScene) {
+                bhScene = new THREE.Scene();
+                bhScene.background = new THREE.Color(0x020308);
+            }
+
+            if (!bhCamera) {
+                bhCamera = new THREE.PerspectiveCamera(48, width / height, 0.1, 3500);
+            }
+
+            const maxPr = totalParticles >= 2000000 ? 1.25 : 1.75;
+            if (!bhRenderer) {
+                bhRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                bhRenderer.setSize(width, height);
+                bhRenderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPr));
+                container.innerHTML = '';
+                container.appendChild(bhRenderer.domElement);
+                attachCameraControls(bhRenderer.domElement, container);
+            } else {
+                bhRenderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPr));
+            }
+
+            clearBlackHoleObjects();
+            updateParticleUI(totalParticles);
+
+            const ratio = totalParticles / 1000000;
+            const is2M = totalParticles >= 2000000;
+
+            const SOLID_COUNT = Math.round(560000 * ratio);
+            const GLOW_COUNT  = Math.max(4000, totalParticles - SOLID_COUNT);
+
+            function createLayer(count) {
+                return {
+                    positions: new Float32Array(count * 3),
+                    colors:    new Float32Array(count * 3),
+                    // meta1: [pType, pSize, phase, radiusOrDist]
+                    // meta2: [angSpeed, radialBiasOrTilt, arm, heatOrAlpha]
+                    meta1: new Float32Array(count * 4),
+                    meta2: new Float32Array(count * 4),
+                    ptr: 0
+                };
+            }
+
+            const solid = createLayer(SOLID_COUNT);
+            const glow  = createLayer(GLOW_COUNT);
+
+            let seed = 987654321 + totalParticles;
+            function rand() {
+                seed = (seed * 1664525 + 1013904223) % 4294967296;
+                return seed / 4294967296;
+            }
+            function randGauss() {
+                return (rand() + rand() + rand() - 1.5) * 1.33;
+            }
+
+            function pushP(layer, px, py, pz, cr, cg, cb, pType, pSize, phase, radOrDist, angSpeed, thickOrTilt, arm, extra) {
+                if (layer.ptr >= layer.positions.length / 3) return;
+                const i3 = layer.ptr * 3;
+                const i4 = layer.ptr * 4;
+
+                layer.positions[i3]     = px;
+                layer.positions[i3 + 1] = py;
+                layer.positions[i3 + 2] = pz;
+
+                layer.colors[i3]     = cr;
+                layer.colors[i3 + 1] = cg;
+                layer.colors[i3 + 2] = cb;
+
+                layer.meta1[i4]     = pType;
+                layer.meta1[i4 + 1] = pSize;
+                layer.meta1[i4 + 2] = phase;
+                layer.meta1[i4 + 3] = radOrDist;
+
+                layer.meta2[i4]     = angSpeed;
+                layer.meta2[i4 + 1] = thickOrTilt;
+                layer.meta2[i4 + 2] = arm;
+                layer.meta2[i4 + 3] = extra;
+
+                layer.ptr++;
+            }
+
+            // 1. EVENT HORIZON SHADOW CORE
+            const horizonCount = Math.min(Math.round(82000 * ratio), Math.max(0, SOLID_COUNT - solid.ptr - 10000));
+            const goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
+            for (let i = 0; i < horizonCount; i++) {
+                const y = 1.0 - (i / Math.max(1, horizonCount - 1)) * 2.0;
+                const rAtY = Math.sqrt(Math.max(0.0, 1.0 - y * y));
+                const theta = (2.0 * Math.PI * i) / goldenRatio;
+
+                const nx = Math.cos(theta) * rAtY;
+                const ny = y;
+                const nz = Math.sin(theta) * rAtY;
+                const rCore = EVENT_HORIZON_R * (0.96 + 0.04 * (i % 5) / 4.0);
+
+                pushP(
+                    solid,
+                    nx * rCore, ny * rCore, nz * rCore,
+                    0.002, 0.002, 0.005,
+                    0.0, 1.45, theta, rCore,
+                    0.0, 0.0, 0.0, 0.0
+                );
+            }
+
+            // 2. EQUATORIAL ACCRETION DISK (Continuous smooth distribution, no ring banding)
+            const diskTarget = Math.round(480000 * ratio);
+            const diskCount = Math.min(diskTarget, Math.max(0, SOLID_COUNT - solid.ptr));
+            for (let i = 0; i < diskCount; i++) {
+                const t = Math.pow(rand(), 1.65);
+                const rDist = EVENT_HORIZON_R * 1.16 + t * 29.5;
+                const angle = rand() * Math.PI * 2.0;
+                const spiralArm = Math.sin(angle * 2.0 - Math.log(rDist) * 3.8) * 0.5 + 0.5 * Math.cos(angle * 3.0 + rDist * 0.25);
+
+                const halfThick = 0.05 + Math.pow(t, 1.35) * 0.45 + spiralArm * 0.04;
+                const yOff = randGauss() * halfThick;
+                const angSpeed = 11.5 / Math.pow(rDist / EVENT_HORIZON_R, 1.42);
+
+                const innerBoost = Math.exp(-Math.pow((rDist - EVENT_HORIZON_R * 1.20) / 3.8, 2.0));
+                const heat = Math.max(0.0, Math.min(1.0, (1.0 - t * 0.92) * 0.84 + innerBoost * 0.32 + spiralArm * 0.05));
+                const cr = Math.min(1.0, 0.44 + 0.56 * Math.pow(heat, 0.72));
+                const cg = Math.min(1.0, 0.10 + 0.60 * Math.pow(heat, 1.30) + 0.25 * Math.pow(heat, 3.0));
+                const cb = Math.min(1.0, 0.03 + 0.75 * Math.pow(heat, 2.8));
+
+                pushP(
+                    solid,
+                    Math.cos(angle) * rDist, yOff, Math.sin(angle) * rDist,
+                    cr, cg, cb,
+                    1.0, 0.96 + heat * 0.42, angle, rDist,
+                    angSpeed, yOff, spiralArm, heat
+                );
+            }
+
+            while (solid.ptr < SOLID_COUNT) {
+                const rDist = EVENT_HORIZON_R * 1.18 + Math.pow(rand(), 1.8) * 24.0;
+                const angle = rand() * Math.PI * 2.0;
+                const yOff = randGauss() * 0.15;
+                const angSpeed = 11.5 / Math.pow(rDist / EVENT_HORIZON_R, 1.42);
+                pushP(solid, Math.cos(angle) * rDist, yOff, Math.sin(angle) * rDist, 1.0, 0.56, 0.18, 1.0, 1.05, angle, rDist, angSpeed, yOff, 0.0, 0.72);
+            }
+
+            // 3. PHOTON SPHERE RING (Soft continuous bright ring hugging the shadow edge)
+            const photonCount = Math.round(70000 * ratio);
+            for (let i = 0; i < photonCount; i++) {
+                const theta = rand() * Math.PI * 2.0;
+                const spread = randGauss() * 0.22;
+                const rPh = PHOTON_SPHERE_R + spread * 0.55;
+                const px = rPh * Math.cos(theta);
+                const py = randGauss() * 0.22;
+                const pz = rPh * Math.sin(theta);
+
+                const falloff = Math.exp(-Math.abs(spread) * 1.4);
+                pushP(glow, px, py, pz, 1.0 * falloff, 0.85 * falloff, 0.60 * falloff, 3.0, 1.15, theta, rPh, 14.0, spread, 0.0, falloff);
+            }
+
+            // 4. CONTINUOUS GRAVITATIONALLY LENSED HALO (Unified smooth arch over & under the black hole)
+            const lensedCount = Math.round(225000 * ratio);
+            for (let i = 0; i < lensedCount; i++) {
+                // Continuous radial falloff from inner halo (near photon sphere) outward
+                const uRad = Math.pow(rand(), 1.85);
+                const haloThick = 0.35 + uRad * 8.5;
+                const polarAngle = (rand() - 0.5) * Math.PI * 1.85;
+                const isTop = rand() < 0.52;
+                const signY = isTop ? 1.0 : -1.0;
+
+                // Smoothly wrap around the black hole silhouette like a real lensed accretion canopy
+                const archR = PHOTON_SPHERE_R * 1.02 + uRad * 7.8 + randGauss() * 0.55;
+                const lx = Math.sin(polarAngle) * (archR * 1.04) + randGauss() * 0.35;
+                const ly = signY * Math.cos(polarAngle) * (archR * 0.98) + randGauss() * (0.25 + uRad * 0.65);
+                const lz = -Math.pow(Math.max(0.0, Math.cos(polarAngle)), 1.4) * 1.5 + randGauss() * (0.35 + haloThick * 0.14);
+
+                const heat = Math.max(0.0, Math.min(1.0, (1.0 - uRad) * (0.55 + 0.45 * Math.abs(Math.cos(polarAngle)))));
+                const cr = 1.0;
+                const cg = 0.18 + 0.62 * Math.pow(heat, 1.25);
+                const cb = 0.04 + 0.62 * Math.pow(heat, 2.5);
+                const alphaWeight = (1.0 - uRad * 0.72) * 0.75;
+
+                pushP(
+                    glow,
+                    lx, ly, lz,
+                    cr * alphaWeight, cg * alphaWeight, cb * alphaWeight,
+                    2.0, 1.15 + heat * 0.35, polarAngle, archR,
+                    4.5 / (1.0 + uRad * 2.5), signY, uRad, heat
+                );
+            }
+
+            // 5. SUBTLE RELATIVISTIC JETS & INNER INFALLING WISPS
+            const jetCount = Math.round((is2M ? 85000 : 65000) * ratio);
+            for (let i = 0; i < jetCount; i++) {
+                const isPolarJet = i < jetCount * 0.45;
+                if (isPolarJet) {
+                    const poleSign = rand() < 0.5 ? 1.0 : -1.0;
+                    const hProg = Math.pow(rand(), 1.15);
+                    const yJet = poleSign * (EVENT_HORIZON_R * 1.08 + hProg * 28.0);
+                    const coneRadius = 0.12 + Math.pow(hProg, 1.4) * 1.45;
+                    const ang = rand() * Math.PI * 2.0;
+                    const radOff = Math.pow(rand(), 0.8) * coneRadius;
+
+                    const fade = Math.max(0.02, (1.0 - hProg * 0.92) * 0.28);
+                    pushP(
+                        glow,
+                        Math.cos(ang) * radOff, yJet, Math.sin(ang) * radOff,
+                        0.45 * fade, 0.70 * fade, 1.0 * fade,
+                        4.0, 0.85, ang, radOff, 5.0 * poleSign, poleSign, hProg, fade
+                    );
+                } else {
+                    const sProg = Math.pow(rand(), 1.35);
+                    const rIn = EVENT_HORIZON_R * 1.08 + sProg * 14.0;
+                    const ang = rand() * Math.PI * 2.0;
+                    const yIn = randGauss() * (0.08 + sProg * 0.42);
+                    const wFade = (1.0 - sProg * 0.55) * 0.72;
+
+                    pushP(
+                        glow,
+                        Math.cos(ang) * rIn, yIn, Math.sin(ang) * rIn,
+                        0.98 * wFade, 0.48 * wFade, 0.16 * wFade,
+                        4.0, 0.9, ang, rIn,
+                        14.0 / Math.pow(rIn / EVENT_HORIZON_R, 1.5), yIn, 1.0, 1.0 - sProg
+                    );
+                }
+            }
+
+            // 6. BACKGROUND STARFIELD & MILKY WAY BAND
+            while (glow.ptr < GLOW_COUNT) {
+                const isBand = rand() < 0.52;
+                const R = 750.0 + rand() * 550.0;
+                let sx, sy, sz;
+
+                if (isBand) {
+                    const lon = rand() * Math.PI * 2.0;
+                    const lat = randGauss() * 0.15;
+                    const bx = R * Math.cos(lat) * Math.cos(lon);
+                    const by = R * Math.sin(lat);
+                    const bz = R * Math.cos(lat) * Math.sin(lon);
+                    const tilt = 0.48;
+                    sx = bx * Math.cos(tilt) - by * Math.sin(tilt);
+                    sy = bx * Math.sin(tilt) + by * Math.cos(tilt);
+                    sz = bz;
+                } else {
+                    const theta = rand() * Math.PI * 2.0;
+                    const phi = Math.acos(2.0 * rand() - 1.0);
+                    sx = R * Math.sin(phi) * Math.cos(theta);
+                    sy = R * Math.cos(phi);
+                    sz = R * Math.sin(phi) * Math.sin(theta);
+                }
+
+                const mag = isBand ? (0.20 + rand() * 0.32) : (0.42 + rand() * 0.52);
+                pushP(glow, sx, sy, sz, 0.85 * mag, 0.90 * mag, 1.0 * mag, 5.0, 1.3 + rand() * 1.0, rand() * 6.283, R, 0.0, 0.0, 0.0, 0.0);
+            }
+
+            const vertexShaderSrc = `
+                attribute vec3 aColor;
+                attribute vec4 aMeta1; // [pType, pSize, phase, radOrDist]
+                attribute vec4 aMeta2; // [angSpeed, thickOrTilt, arm, extra]
+
+                uniform float uTime;
+                uniform float uLensStrength;
+                uniform float uPixelRatio;
+
+                varying vec3 vColor;
+                varying float vType;
+
+                void main() {
+                    float pType = aMeta1.x;
+                    float pSize = aMeta1.y;
+                    float phase = aMeta1.z;
+                    float radOrDist = aMeta1.w;
+
+                    float angSpeed = aMeta2.x;
+                    float thickOrTilt = aMeta2.y;
+                    float arm = aMeta2.z;
+                    float extra = aMeta2.w;
+
+                    vec3 pos = position;
+                    vec3 col = aColor;
+
+                    if (pType < 0.5) {
+                        float rot = uTime * 0.25;
+                        float c = cos(rot);
+                        float s = sin(rot);
+                        pos.xz = mat2(c, -s, s, c) * pos.xz;
+                        col = vec3(0.001, 0.001, 0.003);
+                    } else if (pType < 1.5) {
+                        float ang = phase + uTime * angSpeed;
+                        float r = radOrDist;
+                        float waveY = sin(ang * 2.0 - r * 0.32 + uTime * 1.8) * 0.06 * uLensStrength;
+                        pos = vec3(cos(ang) * r, thickOrTilt + waveY, sin(ang) * r);
+
+                        float doppler = clamp(-sin(ang) * 0.5 + 0.5, 0.0, 1.0);
+                        float boost = mix(0.72, 1.32, pow(doppler, 1.2) * uLensStrength);
+                        col = aColor * boost;
+                    } else if (pType < 2.5) {
+                        // Gentle organic drift along the lensed canopy without forming discrete rings
+                        float drift = sin(uTime * 1.6 + phase * 3.0) * 0.06 * uLensStrength;
+                        float warpScale = mix(0.25, 1.08, uLensStrength);
+                        pos = vec3(
+                            position.x * warpScale + drift,
+                            position.y * warpScale - drift * 0.5,
+                            position.z * warpScale
+                        );
+                        col = aColor * (0.45 + 0.68 * uLensStrength);
+                    } else if (pType < 3.5) {
+                        float ang = phase + uTime * angSpeed;
+                        float r = radOrDist;
+                        pos = vec3(r * cos(ang), thickOrTilt * 0.35, r * sin(ang));
+                        col = aColor * (0.75 + 0.45 * uLensStrength);
+                    } else if (pType < 4.5) {
+                        if (arm > 0.5) {
+                            float rNow = max(${EVENT_HORIZON_R.toFixed(1)}, radOrDist - mod(uTime * 3.5, 8.0) * extra);
+                            float angNow = phase + uTime * angSpeed * (8.5 / max(6.0, rNow));
+                            pos = vec3(cos(angNow) * rNow, thickOrTilt * (rNow / max(6.0, radOrDist)), sin(angNow) * rNow);
+                        } else {
+                            float ang = phase + uTime * angSpeed * 0.5;
+                            pos = vec3(cos(ang) * radOrDist, position.y, sin(ang) * radOrDist);
+                        }
+                    } else {
+                        vec3 toCam = normalize(cameraPosition - pos);
+                        vec3 bhDir = normalize(-pos);
+                        float align = max(0.0, dot(normalize(pos), normalize(-cameraPosition)));
+                        float deflection = pow(align, 18.0) * 95.0 * uLensStrength;
+                        pos += cross(bhDir, toCam) * deflection;
+                    }
+
+                    vColor = col;
+                    vType = pType;
+
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+
+                    float distToCam = max(1.0, -mvPosition.z);
+                    float sizeScale = (pType > 4.5) ? 1.45 : (52.0 / distToCam);
+                    float maxPt = (${totalParticles} >= 2000000) ? 5.2 : 7.5;
+                    float minPt = (pType < 0.5) ? 2.5 : ((pType > 4.5) ? 0.80 : 0.95);
+                    gl_PointSize = clamp(pSize * sizeScale * uPixelRatio, minPt, maxPt);
+                }
+            `;
+
+            const solidFragSrc = `
+                varying vec3 vColor;
+                varying float vType;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float rSq = dot(coord, coord);
+                    if (rSq > 0.25) discard;
+                    float alpha = (vType < 0.5) ? 1.0 : smoothstep(0.25, 0.06, rSq);
+                    gl_FragColor = vec4(vColor, alpha);
+                }
+            `;
+
+            const glowFragSrc = `
+                varying vec3 vColor;
+                varying float vType;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float rSq = dot(coord, coord);
+                    if (rSq > 0.25) discard;
+                    float glow = smoothstep(0.25, 0.0, rSq);
+                    float alpha = (vType > 4.5) ? glow * 0.34 : glow * 0.28;
+                    gl_FragColor = vec4(vColor * glow, alpha);
+                }
+            `;
+
+            function addLayerMesh(layer, fragSrc, blending, depthWrite) {
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute('position', new THREE.BufferAttribute(layer.positions, 3));
+                geom.setAttribute('aColor',   new THREE.BufferAttribute(layer.colors, 3));
+                geom.setAttribute('aMeta1',   new THREE.BufferAttribute(layer.meta1, 4));
+                geom.setAttribute('aMeta2',   new THREE.BufferAttribute(layer.meta2, 4));
+
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uTime:         { value: bhTime },
+                        uLensStrength: { value: bhLensStrength },
+                        uPixelRatio:   { value: Math.min(window.devicePixelRatio, 2) }
+                    },
+                    vertexShader: vertexShaderSrc,
+                    fragmentShader: fragSrc,
+                    transparent: true,
+                    depthWrite: depthWrite,
+                    blending: blending
+                });
+
+                const pts = new THREE.Points(geom, mat);
+                pts.frustumCulled = false;
+                bhScene.add(pts);
+                bhPointsObjects.push({ points: pts, geometry: geom, material: mat });
+                return mat;
+            }
+
+            bhSolidMat = addLayerMesh(solid, solidFragSrc, THREE.NormalBlending, true);
+            bhGlowMat  = addLayerMesh(glow,  glowFragSrc,  THREE.AdditiveBlending, false);
+        }
+
+        function attachCameraControls(domEl, container) {
+            domEl.addEventListener('mousedown', (e) => {
+                if (e.button === 2 || e.shiftKey) camState.isPanning = true;
+                else camState.isDragging = true;
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => {
+                camState.isDragging = false;
+                camState.isPanning = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                const dx = e.clientX - camState.prevX;
+                const dy = e.clientY - camState.prevY;
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+
+                if (camState.isDragging) {
+                    camState.targetTheta -= dx * 0.0065;
+                    camState.targetPhi = Math.max(0.06, Math.min(Math.PI - 0.06, camState.targetPhi - dy * 0.0065));
+                } else if (camState.isPanning) {
+                    const panFactor = camState.radius * 0.0015;
+                    camState.panOffset.x -= dx * panFactor * Math.cos(camState.theta);
+                    camState.panOffset.z += dx * panFactor * Math.sin(camState.theta);
+                    camState.panOffset.y += dy * panFactor;
+                }
+            });
+
+            domEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            domEl.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 1.12 : 0.89;
+                camState.targetRadius = Math.max(9.5, Math.min(260, camState.targetRadius * zoomFactor));
+            }, { passive: false });
+
+            domEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    camState.isDragging = true;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    camState.isDragging = false;
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    camState.pinchDist = Math.hypot(dx, dy);
+                }
+            }, { passive: true });
+
+            domEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && camState.isDragging) {
+                    const dx = e.touches[0].clientX - camState.prevX;
+                    const dy = e.touches[0].clientY - camState.prevY;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+                    camState.targetTheta -= dx * 0.008;
+                    camState.targetPhi = Math.max(0.06, Math.min(Math.PI - 0.06, camState.targetPhi - dy * 0.008));
+                } else if (e.touches.length === 2) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const newDist = Math.hypot(dx, dy);
+                    if (camState.pinchDist > 0) {
+                        const scale = camState.pinchDist / newDist;
+                        camState.targetRadius = Math.max(9.5, Math.min(260, camState.targetRadius * scale));
+                    }
+                    camState.pinchDist = newDist;
+                }
+            }, { passive: true });
+
+            window.addEventListener('resize', () => {
+                if (!bhRenderer || !bhCamera) return;
+                const w = container.clientWidth || window.innerWidth;
+                const h = container.clientHeight || window.innerHeight;
+                bhCamera.aspect = w / h;
+                bhCamera.updateProjectionMatrix();
+                bhRenderer.setSize(w, h);
+            });
+        }
+
+        let lastFrameTime = performance.now();
+        let fpsFrames = 0;
+        let fpsLastCheck = performance.now();
+
+        function animateBlackHole(now) {
+            requestAnimationFrame(animateBlackHole);
+
+            const dt = Math.min(0.05, (now - lastFrameTime) * 0.001);
+            lastFrameTime = now;
+
+            bhTime += dt * 0.025 * bhSpeed;
+
+            fpsFrames++;
+            if (now - fpsLastCheck >= 500) {
+                const fps = Math.round((fpsFrames * 1000) / (now - fpsLastCheck));
+                const fpsEl = document.getElementById('sim-fps-counter');
+                if (fpsEl) fpsEl.textContent = `${fps} FPS • GPU WebGL`;
+                fpsFrames = 0;
+                fpsLastCheck = now;
+            }
+
+            if (bhSolidMat && bhGlowMat) {
+                bhSolidMat.uniforms.uTime.value = bhTime;
+                bhSolidMat.uniforms.uLensStrength.value = bhLensStrength;
+
+                bhGlowMat.uniforms.uTime.value = bhTime;
+                bhGlowMat.uniforms.uLensStrength.value = bhLensStrength;
+            }
+
+            const targetCenter = new THREE.Vector3(0, 0, 0).add(camState.panOffset);
+            camState.lookAt.lerp(targetCenter, 0.12);
+
+            camState.radius += (camState.targetRadius - camState.radius) * 0.12;
+            camState.theta  += (camState.targetTheta  - camState.theta)  * 0.12;
+            camState.phi    += (camState.targetPhi    - camState.phi)    * 0.12;
+
+            const sinPhi = Math.sin(camState.phi);
+            bhCamera.position.set(
+                camState.lookAt.x + camState.radius * sinPhi * Math.sin(camState.theta),
+                camState.lookAt.y + camState.radius * Math.cos(camState.phi),
+                camState.lookAt.z + camState.radius * sinPhi * Math.cos(camState.theta)
+            );
+            bhCamera.lookAt(camState.lookAt);
+
+            bhRenderer.render(bhScene, bhCamera);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            buildBlackHole(bhParticleCount);
+            lastFrameTime = performance.now();
+            fpsLastCheck = performance.now();
+            requestAnimationFrame(animateBlackHole);
+        });
+    </script>
+</body>
+</html>

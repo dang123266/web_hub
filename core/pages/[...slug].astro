@@ -4,13 +4,18 @@ import CollectionSearch from '../components/CollectionSearch.astro';
 import { getModules, getModulePages, getItems, plainItem, fileUrl, withBase } from '../lib/modules.js';
 
 export function getStaticPaths() {
+  // Mô-đun bật collection.direct: bấm vào mục là mở thẳng link đầu tiên trong files.
+  const withDirect = (i, m) => {
+    const u = m.collection?.direct && i.files?.[0]?.url;
+    return u ? { ...i, href: fileUrl(u), external: /^https?:/.test(u) } : i;
+  };
   const out = [];
   for (const m of getModules()) {
     const route = m.route.replace(/^\/|\/$/g, '');
     const items = m.collection ? getItems(m.dir) : [];
     for (const p of getModulePages(m.dir)) {
       const slug = p.file === 'index' ? route : `${route}/${p.file}`;
-      out.push({ params: { slug }, props: { kind: p.file === 'index' && m.collection ? 'collection' : 'page', page: p, mod: m, items: items.map(plainItem) } });
+      out.push({ params: { slug }, props: { kind: p.file === 'index' && m.collection ? 'collection' : 'page', page: p, mod: m, items: items.map((i) => withDirect(plainItem(i), m)) } });
     }
     for (const it of items) {
       out.push({ params: { slug: `${route}/${it.id}` }, props: { kind: 'item', item: it, mod: m } });
@@ -28,6 +33,7 @@ const Content = kind === 'item' ? item.Content : page.Content;
     <article class="item-view">
       <p class="item-back"><a href={withBase(mod.route)}>← Quay lại {mod.name}</a></p>
       <h1>{item.title}</h1>
+      {item.image && <p class="item-image"><img src={item.image} alt={item.title} /></p>}
       <div class="result-meta">
         {[item.type, item.date].filter(Boolean).join(' · ')}
         {item.tags.map((t) => <span class="tag">{t}</span>)}
@@ -36,7 +42,7 @@ const Content = kind === 'item' ? item.Content : page.Content;
         <div class="item-files">
           {item.files.map((f, i) => (
             <div class="item-file">
-              <a class={i === 0 ? 'button' : 'button button-secondary'} href={fileUrl(f.url)}>{f.label ?? 'Tải về'}{f.size ? ` (${f.size})` : ''}</a>
+              <a class={i === 0 ? 'button' : 'button button-secondary'} href={fileUrl(f.url)} download={f.download ? '' : undefined}>{f.label ?? 'Tải về'}{f.size ? ` (${f.size})` : ''}</a>
               {f.sha256 && <details class="item-sha"><summary>Mã kiểm tra sha256</summary><code>{f.sha256}</code></details>}
             </div>
           ))}

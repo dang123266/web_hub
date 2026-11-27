@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng Hệ Mặt Trời 3D Bằng Hạt (GPU WebGL)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js (r128) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #02040a;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.68);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.75);
+        }
+
+        input[type="range"].cosmic-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(30, 41, 59, 0.9);
+            height: 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+        input[type="range"].cosmic-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #22d3ee;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
+            transition: transform 0.15s ease;
+        }
+        input[type="range"].cosmic-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+        }
+
+        #sim-control-panel::-webkit-scrollbar {
+            width: 5px;
+        }
+        #sim-control-panel::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <!-- Full-viewport 3D WebGL Container -->
+    <div id="solar-webgl-container" class="fixed inset-0 w-full h-full bg-[#02040a] cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Top Header -->
+    <header class="fixed top-4 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
+        <div class="glass-panel rounded-2xl px-4 py-3 border border-cyan-400/25 pointer-events-auto">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <h1 class="font-display font-bold text-sm sm:text-base text-white tracking-wide">
+                    MÔ PHỎNG HỆ MẶT TRỜI 3D BẰNG HẠT
+                </h1>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-xs font-mono">
+                <span id="sim-particle-badge" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-semibold">
+                    1,000,000 Particles
+                </span>
+                <span id="sim-fps-counter" class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                    -- FPS • GPU WebGL
+                </span>
+                <span id="sim-target-label" class="text-slate-300 hidden md:inline">
+                    Góc nhìn: Toàn cảnh Hệ Mặt Trời
+                </span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="download-btn" title="Tải file HTML mô phỏng" class="glass-panel hover:bg-indigo-600/40 border-indigo-400/30 text-indigo-200 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span class="hidden sm:inline">Tải HTML</span>
+            </button>
+            <button id="fullscreen-btn" title="Toàn màn hình (F)" class="glass-panel hover:bg-slate-800/80 text-slate-200 p-2 rounded-full transition cursor-pointer">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Collapsible Control Panel -->
+    <aside class="fixed top-24 right-4 z-30 flex flex-col items-end pointer-events-none">
+        <button id="toggle-sim-panel-btn" class="pointer-events-auto glass-panel hover:bg-slate-800/90 border border-cyan-400/35 text-cyan-200 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-lg transition cursor-pointer mb-2">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+            <span id="toggle-sim-panel-text">Thu Gọn</span>
+        </button>
+
+        <div id="sim-control-panel" class="pointer-events-auto glass-panel rounded-3xl p-4 sm:p-5 w-72 sm:w-80 border border-cyan-500/25 shadow-2xl space-y-4 max-h-[74vh] overflow-y-auto">
+            <!-- Time Speed Control -->
+            <div>
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Tốc độ thời gian quỹ đạo</span>
+                    <span id="sim-speed-val" class="font-mono font-bold text-cyan-300">10x</span>
+                </div>
+                <input id="sim-speed-slider" type="range" min="0" max="200" step="1" value="10" class="cosmic-slider w-full">
+                <div class="grid grid-cols-4 gap-1 mt-2">
+                    <button onclick="setSimSpeed(0)" class="speed-preset text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">Tạm dừng</button>
+                    <button onclick="setSimSpeed(10)" class="speed-preset text-[11px] py-1 rounded-lg bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 font-semibold transition cursor-pointer">10x</button>
+                    <button onclick="setSimSpeed(50)" class="speed-preset text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">50x</button>
+                    <button onclick="setSimSpeed(150)" class="speed-preset text-[11px] py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">150x</button>
+                </div>
+            </div>
+
+            <!-- Particle Count Selector -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Số lượng hạt mô phỏng</span>
+                    <span id="sim-particle-label" class="font-mono font-bold text-cyan-300">1,000,000</span>
+                </div>
+                <div class="grid grid-cols-4 gap-1">
+                    <button onclick="setParticleCount(250000)" data-pcount="250000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-cyan-500/25 text-slate-300 border border-slate-700 font-mono transition cursor-pointer">250K</button>
+                    <button onclick="setParticleCount(500000)" data-pcount="500000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-cyan-500/25 text-slate-300 border border-slate-700 font-mono transition cursor-pointer">500K</button>
+                    <button onclick="setParticleCount(1000000)" data-pcount="1000000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 font-mono font-semibold transition cursor-pointer">1M</button>
+                    <button onclick="setParticleCount(2000000)" data-pcount="2000000" class="pcount-btn text-[11px] py-1.5 rounded-lg bg-slate-800/80 hover:bg-purple-500/25 text-purple-200 border border-purple-400/40 font-mono transition cursor-pointer">2M+</button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1.5 leading-snug">
+                    Chế độ <span class="text-purple-300 font-semibold">2M+</span> mở rộng thêm Ceres, Enceladus, Triton, Haumea, Makemake & sao chổi.
+                </p>
+            </div>
+
+            <!-- Distance Scale Control -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-300 font-medium">Tỷ lệ khoảng cách thiên văn</span>
+                    <span id="sim-scale-val" class="font-mono font-bold text-amber-300">Quan sát rõ</span>
+                </div>
+                <input id="sim-scale-slider" type="range" min="0" max="100" step="1" value="0" class="cosmic-slider w-full">
+                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Quan sát chi tiết</span>
+                    <span>Khoảng cách thực AU</span>
+                </div>
+            </div>
+
+            <!-- Camera Focus Presets -->
+            <div class="pt-2 border-t border-slate-700/60">
+                <div class="text-xs text-slate-300 font-medium mb-2">Tiêu điểm Camera (Focus)</div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="focusSolarTarget('overview')" data-focus="overview" class="focus-btn col-span-2 text-left px-3 py-1.5 rounded-xl bg-cyan-500/25 border border-cyan-400/50 text-cyan-200 text-xs font-semibold transition cursor-pointer">
+                        🌌 Toàn cảnh Hệ Mặt Trời
+                    </button>
+                    <button onclick="focusSolarTarget('sun')" data-focus="sun" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        ☀️ Mặt Trời
+                    </button>
+                    <button onclick="focusSolarTarget('earth')" data-focus="earth" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🌍 Trái Đất & Trăng
+                    </button>
+                    <button onclick="focusSolarTarget('mars')" data-focus="mars" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🔴 Sao Hỏa
+                    </button>
+                    <button onclick="focusSolarTarget('asteroids')" data-focus="asteroids" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        ☄️ Đai Tiểu Hành Tinh
+                    </button>
+                    <button onclick="focusSolarTarget('jupiter')" data-focus="jupiter" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🟠 Sao Mộc & 4 Trăng
+                    </button>
+                    <button onclick="focusSolarTarget('saturn')" data-focus="saturn" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🪐 Sao Thổ & Vành Đai
+                    </button>
+                    <button onclick="focusSolarTarget('uranus')" data-focus="uranus" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🔵 Sao Thiên Vương
+                    </button>
+                    <button onclick="focusSolarTarget('neptune')" data-focus="neptune" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🌀 Sao Hải Vương
+                    </button>
+                    <button onclick="focusSolarTarget('kuiper')" data-focus="kuiper" class="focus-btn col-span-2 text-left px-3 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        ❄️ Vành đai Kuiper & Sao Diêm Vương
+                    </button>
+                    <button onclick="focusSolarTarget('ceres')" data-focus="ceres" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🪨 Tiểu hành tinh Ceres
+                    </button>
+                    <button onclick="focusSolarTarget('triton')" data-focus="triton" class="focus-btn text-left px-2.5 py-1.5 rounded-xl bg-slate-800/75 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs transition cursor-pointer">
+                        🧊 Vệ tinh Triton
+                    </button>
+                </div>
+            </div>
+
+            <!-- Particle Allocation Breakdown -->
+            <div class="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 space-y-1">
+                <div class="flex justify-between"><span>• Mặt Trời (Lõi + Nhật hoa):</span><span id="bd-sun" class="text-amber-300 font-mono">190,000</span></div>
+                <div class="flex justify-between"><span>• Hành tinh, Vệ tinh & Thiên thể:</span><span id="bd-planets" class="text-cyan-300 font-mono">465,000</span></div>
+                <div class="flex justify-between"><span>• Vành đai Sao Thổ:</span><span id="bd-rings" class="text-yellow-200 font-mono">125,000</span></div>
+                <div class="flex justify-between"><span>• Đai Tiểu Hành Tinh:</span><span id="bd-asteroids" class="text-slate-200 font-mono">95,000</span></div>
+                <div class="flex justify-between"><span>• Vành đai Kuiper & Sao chổi:</span><span id="bd-kuiper" class="text-indigo-300 font-mono">90,000</span></div>
+                <div class="flex justify-between"><span>• Quỹ đạo & Sao nền:</span><span id="bd-bg" class="text-purple-300 font-mono">35,000</span></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Bottom Controls Hint -->
+    <footer class="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+        <div class="px-4 py-1.5 rounded-full bg-slate-950/75 border border-slate-800 text-[11px] text-slate-400 backdrop-blur-md whitespace-nowrap">
+            Chuột trái: Xoay 360° • Lăn chuột / Chụm ngón: Zoom • Chuột phải: Di chuyển • Phím F: Toàn màn hình
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="fixed bottom-14 right-4 z-50 glass-panel border-cyan-400/40 text-cyan-100 px-4 py-2.5 rounded-2xl shadow-2xl transform translate-x-full opacity-0 transition-all duration-300 flex items-center gap-2.5 text-xs">
+        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        <span id="toast-message">Thông báo</span>
+    </div>
+
+    <script>
+        /* -----------------------------------------------------------
+           UI UTILITIES: TOAST, FULLSCREEN & DOWNLOAD
+        ----------------------------------------------------------- */
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            if (!toast || !toastMsg) return;
+            toastMsg.textContent = message;
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+            }, 3000);
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    showToast('Trình duyệt không hỗ trợ chế độ toàn màn hình ở khung này.');
+                });
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullScreen);
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'f') toggleFullScreen();
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            try {
+                const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Mo_Phong_He_Mat_Troi_3D.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Đã tải xuống file solar_system_3d.html thành công!');
+            } catch (err) {
+                showToast('Không thể tải trực tiếp, hãy nhấn Ctrl+S để lưu trang.');
+            }
+        });
+
+        /* -----------------------------------------------------------
+           3D PARTICLE SOLAR SYSTEM ENGINE (THREE.JS + CUSTOM GLSL)
+        ----------------------------------------------------------- */
+        let simScene, simCamera, simRenderer, simStandardMaterial, simGlowMaterial;
+        let simPointsObjects = [];
+        let simParticleCount = 1000000;
+        let simTime = 0.35;
+        let simSpeed = 10.0;
+        let simScaleBlend = 0.0;
+        let simFocusTarget = 'overview';
+
+        const camState = {
+            theta: 0.55,
+            phi: 1.02,
+            radius: 175,
+            targetRadius: 175,
+            targetTheta: 0.55,
+            targetPhi: 1.02,
+            lookAt: new THREE.Vector3(0, 0, 0),
+            panOffset: new THREE.Vector3(0, 0, 0),
+            isDragging: false,
+            isPanning: false,
+            prevX: 0,
+            prevY: 0,
+            pinchDist: 0
+        };
+
+        const BODIES = [
+            { id: 0,  key: 'sun',     name: 'Mặt Trời (Sun)',          r: 5.4,  dObs: 0,     dAu: 0,      period: 1.0,     tilt: 7.25,  rot: 0.45,  inc: 0.0,  ecc: 0.0 },
+            { id: 1,  key: 'mercury', name: 'Sao Thủy (Mercury)',      r: 0.52, dObs: 16.5,  dAu: 15.0,   period: 0.2408,  tilt: 0.03,  rot: 0.15,  inc: 7.0,  ecc: 0.205 },
+            { id: 2,  key: 'venus',   name: 'Sao Kim (Venus)',         r: 0.88, dObs: 24.0,  dAu: 22.0,   period: 0.6152,  tilt: 177.3, rot: -0.08, inc: 3.39, ecc: 0.007 },
+            { id: 3,  key: 'earth',   name: 'Trái Đất (Earth)',        r: 1.02, dObs: 33.0,  dAu: 30.0,   period: 1.0000,  tilt: 23.44, rot: 2.4,   inc: 0.0,  ecc: 0.017 },
+            { id: 4,  key: 'moon',    name: 'Mặt Trăng (Moon)',        r: 0.28, dObs: 2.5,   dAu: 2.2,    period: 0.0748,  tilt: 6.68,  rot: 0.3,   inc: 5.14, ecc: 0.055, parent: 3 },
+            { id: 5,  key: 'mars',    name: 'Sao Hỏa (Mars)',          r: 0.70, dObs: 43.0,  dAu: 41.0,   period: 1.8808,  tilt: 25.19, rot: 2.2,   inc: 1.85, ecc: 0.093 },
+            { id: 6,  key: 'jupiter', name: 'Sao Mộc (Jupiter)',       r: 3.10, dObs: 68.0,  dAu: 105.0,  period: 11.862,  tilt: 3.13,  rot: 4.8,   inc: 1.30, ecc: 0.049 },
+            { id: 7,  key: 'io',      name: 'Vệ tinh Io',              r: 0.26, dObs: 4.5,   dAu: 4.5,    period: 0.00485, tilt: 0.0,   rot: 1.0,   inc: 0.05, ecc: 0.004, parent: 6 },
+            { id: 8,  key: 'europa',  name: 'Vệ tinh Europa',          r: 0.24, dObs: 5.5,   dAu: 5.5,    period: 0.00972, tilt: 0.0,   rot: 1.0,   inc: 0.47, ecc: 0.009, parent: 6 },
+            { id: 9,  key: 'ganymede',name: 'Vệ tinh Ganymede',        r: 0.34, dObs: 6.7,   dAu: 6.7,    period: 0.01959, tilt: 0.0,   rot: 1.0,   inc: 0.20, ecc: 0.001, parent: 6 },
+            { id: 10, key: 'callisto',name: 'Vệ tinh Callisto',        r: 0.31, dObs: 7.9,   dAu: 7.9,    period: 0.04569, tilt: 0.0,   rot: 1.0,   inc: 0.19, ecc: 0.007, parent: 6 },
+            { id: 11, key: 'saturn',  name: 'Sao Thổ (Saturn)',        r: 2.55, dObs: 96.0,  dAu: 185.0,  period: 29.457,  tilt: 26.73, rot: 4.2,   inc: 2.48, ecc: 0.056 },
+            { id: 12, key: 'titan',   name: 'Vệ tinh Titan',           r: 0.36, dObs: 7.8,   dAu: 7.8,    period: 0.04368, tilt: 0.3,   rot: 1.0,   inc: 0.35, ecc: 0.029, parent: 11 },
+            { id: 13, key: 'uranus',  name: 'Sao Thiên Vương (Uranus)',r: 1.62, dObs: 124.0, dAu: 340.0,  period: 84.011,  tilt: 97.77, rot: -2.8,  inc: 0.77, ecc: 0.046 },
+            { id: 14, key: 'neptune', name: 'Sao Hải Vương (Neptune)', r: 1.58, dObs: 150.0, dAu: 510.0,  period: 164.79,  tilt: 28.32, rot: 2.9,   inc: 1.77, ecc: 0.010 },
+            { id: 15, key: 'pluto',   name: 'Sao Diêm Vương (Pluto)',  r: 0.40, dObs: 174.0, dAu: 650.0,  period: 247.94,  tilt: 122.5, rot: -0.5,  inc: 17.16,ecc: 0.249 },
+            { id: 16, key: 'ceres',   name: 'Tiểu hành tinh Ceres',    r: 0.34, dObs: 54.5,  dAu: 68.0,   period: 4.60,    tilt: 4.0,   rot: 1.8,   inc: 10.6, ecc: 0.076 },
+            { id: 17, key: 'enceladus',name:'Vệ tinh Enceladus',       r: 0.20, dObs: 5.2,   dAu: 5.2,    period: 0.00375, tilt: 0.0,   rot: 1.2,   inc: 0.02, ecc: 0.004, parent: 11 },
+            { id: 18, key: 'triton',  name: 'Vệ tinh Triton',          r: 0.32, dObs: 4.7,   dAu: 4.7,    period: -0.0161, tilt: 0.0,   rot: -1.1,  inc: 23.0, ecc: 0.000, parent: 14 },
+            { id: 19, key: 'haumea',  name: 'Hành tinh lùn Haumea',    r: 0.31, dObs: 167.0, dAu: 605.0,  period: 283.8,   tilt: 28.0,  rot: 6.2,   inc: 28.2, ecc: 0.195 },
+            { id: 20, key: 'makemake',name: 'Hành tinh lùn Makemake',  r: 0.32, dObs: 182.0, dAu: 715.0,  period: 305.3,   tilt: 29.0,  rot: 0.9,   inc: 29.0, ecc: 0.158 },
+            { id: 21, key: 'comet',   name: 'Sao Chổi Halley-like',    r: 0.24, dObs: 82.0,  dAu: 270.0,  period: 75.3,    tilt: 18.0,  rot: 1.5,   inc: 16.5, ecc: 0.580 }
+        ];
+
+        const BODY_COUNT = BODIES.length;
+
+        function computeBodyPosition(body, t, scaleBlend, outVec) {
+            if (body.id === 0) {
+                outVec.set(0, 0, 0);
+                return outVec;
+            }
+            const dist = body.dObs * (1 - scaleBlend) + body.dAu * scaleBlend;
+            const meanAnomaly = (t / body.period) * Math.PI * 2.0 + body.id * 1.15;
+            const E = meanAnomaly + body.ecc * Math.sin(meanAnomaly);
+            const r = dist * (1.0 - body.ecc * Math.cos(E));
+            const angle = E;
+
+            const incRad = (body.inc * Math.PI) / 180.0;
+            const xLocal = Math.cos(angle) * r;
+            const zLocal = Math.sin(angle) * r;
+            const yLocal = Math.sin(angle) * r * Math.sin(incRad);
+
+            outVec.set(xLocal, yLocal, zLocal);
+
+            if (body.parent !== undefined) {
+                const parentBody = BODIES[body.parent];
+                const parentPos = computeBodyPosition(parentBody, t, scaleBlend, new THREE.Vector3());
+                outVec.add(parentPos);
+            }
+            return outVec;
+        }
+
+        document.getElementById('toggle-sim-panel-btn').addEventListener('click', () => {
+            const panel = document.getElementById('sim-control-panel');
+            const label = document.getElementById('toggle-sim-panel-text');
+            panel.classList.toggle('hidden');
+            label.textContent = panel.classList.contains('hidden') ? 'Mở Điều Khiển' : 'Thu Gọn';
+        });
+
+        const simSpeedSlider = document.getElementById('sim-speed-slider');
+        const simSpeedVal = document.getElementById('sim-speed-val');
+
+        function setSimSpeed(val) {
+            simSpeed = parseFloat(val);
+            if (simSpeedSlider) simSpeedSlider.value = simSpeed;
+            if (simSpeedVal) simSpeedVal.textContent = simSpeed === 0 ? 'Tạm dừng' : `${simSpeed}x`;
+        }
+        if (simSpeedSlider) {
+            simSpeedSlider.addEventListener('input', (e) => setSimSpeed(e.target.value));
+        }
+
+        const simScaleSlider = document.getElementById('sim-scale-slider');
+        const simScaleVal = document.getElementById('sim-scale-val');
+        if (simScaleSlider) {
+            simScaleSlider.addEventListener('input', (e) => {
+                simScaleBlend = parseFloat(e.target.value) / 100.0;
+                if (!simScaleVal) return;
+                if (simScaleBlend < 0.15) simScaleVal.textContent = 'Quan sát rõ';
+                else if (simScaleBlend > 0.85) simScaleVal.textContent = 'Chuẩn AU thực';
+                else simScaleVal.textContent = `Trung gian ${Math.round(simScaleBlend * 100)}%`;
+            });
+        }
+
+        function focusSolarTarget(targetKey) {
+            simFocusTarget = targetKey;
+            camState.panOffset.set(0, 0, 0);
+
+            const focusDistances = {
+                overview: { r: 175, phi: 1.02, label: `Toàn cảnh Hệ Mặt Trời (${simParticleCount.toLocaleString('en-US')} Hạt)` },
+                sun:      { r: 20,  phi: 1.25, label: 'Mặt Trời, Nhật Hoa & Vòng Từ Trường' },
+                earth:    { r: 6.0, phi: 1.25, label: 'Hệ Trái Đất & Mặt Trăng' },
+                mars:     { r: 4.6, phi: 1.25, label: 'Sao Hỏa (Hành tinh Đỏ)' },
+                asteroids:{ r: 92,  phi: 0.72, label: 'Vành Đai Tiểu Hành Tinh Chính' },
+                ceres:    { r: 4.0, phi: 1.18, label: 'Tiểu hành tinh lùn Ceres' },
+                jupiter:  { r: 13.0,phi: 1.22, label: 'Sao Mộc & Hệ Vệ Tinh' },
+                saturn:   { r: 14.5,phi: 1.12, label: 'Sao Thổ & Hệ Vành Đai' },
+                uranus:   { r: 10.0,phi: 1.15, label: 'Sao Thiên Vương' },
+                neptune:  { r: 10.0,phi: 1.15, label: 'Sao Hải Vương' },
+                triton:   { r: 3.8, phi: 1.20, label: 'Vệ tinh băng Triton' },
+                kuiper:   { r: 230, phi: 0.75, label: 'Vành Đai Kuiper & Sao Diêm Vương' }
+            };
+
+            const cfg = focusDistances[targetKey] || focusDistances.overview;
+            camState.targetRadius = cfg.r;
+            camState.targetPhi = cfg.phi;
+
+            const labelEl = document.getElementById('sim-target-label');
+            if (labelEl) labelEl.textContent = `Góc nhìn: ${cfg.label}`;
+
+            document.querySelectorAll('.focus-btn').forEach(btn => {
+                if (btn.getAttribute('data-focus') === targetKey) {
+                    btn.classList.remove('bg-slate-800/75', 'border-slate-700', 'text-slate-200');
+                    btn.classList.add('bg-cyan-500/25', 'border-cyan-400/50', 'text-cyan-200', 'font-semibold');
+                } else {
+                    btn.classList.remove('bg-cyan-500/25', 'border-cyan-400/50', 'text-cyan-200', 'font-semibold');
+                    btn.classList.add('bg-slate-800/75', 'border-slate-700', 'text-slate-200');
+                }
+            });
+        }
+
+        function updateParticleUI(totalCount) {
+            const badgeEl = document.getElementById('sim-particle-badge');
+            const labelEl = document.getElementById('sim-particle-label');
+            if (badgeEl) badgeEl.textContent = `${totalCount.toLocaleString('en-US')} Particles`;
+            if (labelEl) labelEl.textContent = totalCount.toLocaleString('en-US');
+
+            document.querySelectorAll('.pcount-btn').forEach(btn => {
+                const val = parseInt(btn.getAttribute('data-pcount'), 10);
+                btn.classList.remove(
+                    'bg-cyan-500/25', 'text-cyan-200', 'border-cyan-400/50', 'font-semibold',
+                    'bg-purple-500/25', 'text-purple-200', 'border-purple-400/50'
+                );
+                btn.classList.add('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+
+                if (val === totalCount) {
+                    if (val >= 2000000) {
+                        btn.classList.remove('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+                        btn.classList.add('bg-purple-500/25', 'text-purple-200', 'border-purple-400/50', 'font-semibold');
+                    } else {
+                        btn.classList.remove('bg-slate-800/80', 'text-slate-300', 'border-slate-700');
+                        btn.classList.add('bg-cyan-500/25', 'text-cyan-200', 'border-cyan-400/50', 'font-semibold');
+                    }
+                }
+            });
+
+            const ratio = totalCount / 1000000;
+            const sunN = Math.round(190000 * ratio);
+            const plN  = Math.round(465000 * ratio);
+            const rgN  = Math.round(125000 * ratio);
+            const asN  = Math.round(95000 * ratio);
+            const kpN  = Math.round(90000 * ratio);
+            const bgN  = Math.max(0, totalCount - (sunN + plN + rgN + asN + kpN));
+
+            const setText = (id, v) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = v.toLocaleString('en-US');
+            };
+            setText('bd-sun', sunN);
+            setText('bd-planets', plN);
+            setText('bd-rings', rgN);
+            setText('bd-asteroids', asN);
+            setText('bd-kuiper', kpN);
+            setText('bd-bg', bgN);
+        }
+
+        function setParticleCount(newCount) {
+            if (![250000, 500000, 1000000, 2000000].includes(newCount)) return;
+            simParticleCount = newCount;
+            updateParticleUI(simParticleCount);
+            buildSolarSystem(simParticleCount);
+            showToast(`Đã chuyển sang ${simParticleCount.toLocaleString('en-US')} hạt!`);
+        }
+
+        function clearSolarSystemObjects() {
+            if (simScene && simPointsObjects.length > 0) {
+                simPointsObjects.forEach(obj => {
+                    simScene.remove(obj.points);
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) obj.material.dispose();
+                });
+            }
+            simPointsObjects = [];
+        }
+
+        function buildSolarSystem(totalParticles) {
+            const container = document.getElementById('solar-webgl-container');
+            if (!container) return;
+
+            const width = container.clientWidth || window.innerWidth;
+            const height = container.clientHeight || window.innerHeight;
+
+            if (!simScene) {
+                simScene = new THREE.Scene();
+                simScene.background = new THREE.Color(0x02040a);
+            }
+
+            if (!simCamera) {
+                simCamera = new THREE.PerspectiveCamera(48, width / height, 0.1, 3500);
+            }
+
+            if (!simRenderer) {
+                simRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                simRenderer.setSize(width, height);
+                const maxPr = totalParticles >= 2000000 ? 1.25 : 1.75;
+                simRenderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPr));
+                container.innerHTML = '';
+                container.appendChild(simRenderer.domElement);
+                attachCameraControls(simRenderer.domElement, container);
+            } else {
+                const maxPr = totalParticles >= 2000000 ? 1.25 : 1.75;
+                simRenderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPr));
+            }
+
+            clearSolarSystemObjects();
+            updateParticleUI(totalParticles);
+
+            const isExtended2M = totalParticles >= 2000000;
+            const scaleFactor = totalParticles / 1000000;
+
+            const ringReserve = Math.round(125000 * scaleFactor);
+            const STD_COUNT = Math.round(865000 * scaleFactor);
+            const GLW_COUNT = Math.max(8000, totalParticles - STD_COUNT);
+            const MAX_STD_BEFORE_RINGS = Math.max(0, STD_COUNT - ringReserve - 16000);
+
+            function createLayerArrays(count) {
+                return {
+                    positions: new Float32Array(count * 3),
+                    normals:   new Float32Array(count * 3),
+                    colors:    new Float32Array(count * 3),
+                    meta1:     new Float32Array(count * 4),
+                    meta2:     new Float32Array(count * 4),
+                    ptr: 0
+                };
+            }
+
+            const std = createLayerArrays(STD_COUNT);
+            const glw = createLayerArrays(GLW_COUNT);
+
+            let seed = 20261126 + totalParticles;
+            function rand() {
+                seed = (seed * 1664525 + 1013904223) % 4294967296;
+                return seed / 4294967296;
+            }
+            function randGauss() {
+                return (rand() + rand() + rand() - 1.5) * 1.33;
+            }
+
+            function fibonacciSpherePoint(index, total, jitterAmt) {
+                const goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
+                const y = 1.0 - (index / Math.max(1, total - 1)) * 2.0;
+                const radiusAtY = Math.sqrt(Math.max(0.0, 1.0 - y * y));
+                const theta = (2.0 * Math.PI * index) / goldenRatio;
+
+                let nx = Math.cos(theta) * radiusAtY;
+                let ny = y;
+                let nz = Math.sin(theta) * radiusAtY;
+
+                if (jitterAmt > 0) {
+                    nx += (rand() - 0.5) * jitterAmt;
+                    ny += (rand() - 0.5) * jitterAmt;
+                    nz += (rand() - 0.5) * jitterAmt;
+                    const len = Math.hypot(nx, ny, nz) || 1.0;
+                    nx /= len; ny /= len; nz /= len;
+                }
+
+                const phi = Math.acos(Math.max(-1.0, Math.min(1.0, ny)));
+                const lon = Math.atan2(nz, nx);
+                return { nx, ny, nz, phi, lon, lat: ny };
+            }
+
+            function hash3(x, y, z) {
+                const h = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453123;
+                return h - Math.floor(h);
+            }
+
+            function smoothstepJS(edge0, edge1, x) {
+                const t = Math.max(0.0, Math.min(1.0, (x - edge0) / (edge1 - edge0)));
+                return t * t * (3.0 - 2.0 * t);
+            }
+
+            function noise3D(x, y, z) {
+                const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+                const fx = x - ix, fy = y - iy, fz = z - iz;
+                const ux = fx * fx * (3.0 - 2.0 * fx);
+                const uy = fy * fy * (3.0 - 2.0 * fy);
+                const uz = fz * fz * (3.0 - 2.0 * fz);
+
+                const n000 = hash3(ix, iy, iz);
+                const n100 = hash3(ix + 1, iy, iz);
+                const n010 = hash3(ix, iy + 1, iz);
+                const n110 = hash3(ix + 1, iy + 1, iz);
+                const n001 = hash3(ix, iy, iz + 1);
+                const n101 = hash3(ix + 1, iy, iz + 1);
+                const n011 = hash3(ix, iy + 1, iz + 1);
+                const n111 = hash3(ix + 1, iy + 1, iz + 1);
+
+                const nx00 = n000 * (1.0 - ux) + n100 * ux;
+                const nx10 = n010 * (1.0 - ux) + n110 * ux;
+                const nx01 = n001 * (1.0 - ux) + n101 * ux;
+                const nx11 = n011 * (1.0 - ux) + n111 * ux;
+
+                const nxy0 = nx00 * (1.0 - uy) + nx10 * uy;
+                const nxy1 = nx01 * (1.0 - uy) + nx11 * uy;
+                return nxy0 * (1.0 - uz) + nxy1 * uz;
+            }
+
+            function fbm3D(x, y, z, octaves) {
+                let value = 0.0;
+                let amp = 0.5;
+                let freq = 1.0;
+                for (let o = 0; o < octaves; o++) {
+                    value += amp * noise3D(x * freq, y * freq, z * freq);
+                    freq *= 2.05;
+                    amp *= 0.5;
+                }
+                return value;
+            }
+
+            function pushParticle(layer, px, py, pz, nx, ny, nz, cr, cg, cb, bId, pType, pSize, phase, dObs, dAu, orbSpeed, inc) {
+                if (layer.ptr >= layer.positions.length / 3) return;
+                const idx3 = layer.ptr * 3;
+                const idx4 = layer.ptr * 4;
+
+                layer.positions[idx3]     = px;
+                layer.positions[idx3 + 1] = py;
+                layer.positions[idx3 + 2] = pz;
+
+                layer.normals[idx3]     = nx;
+                layer.normals[idx3 + 1] = ny;
+                layer.normals[idx3 + 2] = nz;
+
+                layer.colors[idx3]     = cr;
+                layer.colors[idx3 + 1] = cg;
+                layer.colors[idx3 + 2] = cb;
+
+                layer.meta1[idx4]     = bId;
+                layer.meta1[idx4 + 1] = pType;
+                layer.meta1[idx4 + 2] = pSize;
+                layer.meta1[idx4 + 3] = phase;
+
+                layer.meta2[idx4]     = dObs;
+                layer.meta2[idx4 + 1] = dAu;
+                layer.meta2[idx4 + 2] = orbSpeed;
+                layer.meta2[idx4 + 3] = inc;
+
+                layer.ptr++;
+            }
+
+            // 1. SUN PHOTOSPHERE + CORONA + PROMINENCE LOOPS
+            const sunR = BODIES[0].r;
+            const sunSolidCount = Math.round(130000 * scaleFactor);
+            const sunCoronaCount = Math.round(42000 * scaleFactor);
+            const sunLoopCount = Math.max(0, Math.round(190000 * scaleFactor) - sunSolidCount - sunCoronaCount);
+
+            for (let i = 0; i < sunSolidCount; i++) {
+                const pt = fibonacciSpherePoint(i, sunSolidCount, 0.008);
+                const { nx, ny, nz, phi, lon, lat } = pt;
+
+                const gran = 0.5 + 0.25 * Math.sin(lon * 14.0 + phi * 11.0) + 0.25 * Math.cos(lon * 22.0 - phi * 18.0);
+                const spotWave = Math.sin(lon * 5.0) * Math.cos(phi * 6.0);
+                const isUmbra = (Math.abs(lat) < 0.36 && spotWave > 0.86);
+                const shellR = sunR * (0.985 + 0.022 * (i % 7) / 6.0);
+
+                let cr, cg, cb;
+                if (isUmbra) {
+                    cr = 0.62; cg = 0.22; cb = 0.05;
+                } else {
+                    cr = 1.0;
+                    cg = 0.68 + 0.28 * gran;
+                    cb = 0.16 + 0.42 * Math.pow(gran, 1.5);
+                }
+
+                pushParticle(std, nx * shellR, ny * shellR, nz * shellR, nx, ny, nz, cr, cg, cb, 0, 0, 1.45, (i % 360) * 0.01745, 0, 0, 0, 0);
+            }
+
+            for (let i = 0; i < sunCoronaCount; i++) {
+                const theta = rand() * Math.PI * 2.0;
+                const phi = Math.acos(2.0 * rand() - 1.0);
+                const nx = Math.sin(phi) * Math.cos(theta);
+                const ny = Math.cos(phi);
+                const nz = Math.sin(phi) * Math.sin(theta);
+
+                const streamer = Math.pow(0.5 + 0.5 * Math.sin(theta * 8.0 + phi * 4.0), 2.0);
+                const radialExp = Math.pow(rand(), 2.8) * (1.15 + 1.15 * streamer);
+                const rPos = sunR * (1.02 + radialExp);
+                const atten = Math.max(0.06, (1.0 - radialExp / 2.4) * (0.4 + 0.6 * streamer));
+
+                pushParticle(glw, nx * rPos, ny * rPos, nz * rPos, nx, ny, nz, 1.0 * atten, 0.54 * atten, 0.15 * atten, 0, 1, 1.65 + rand() * 0.9, rand() * 6.283, 0, 0, 0, 0);
+            }
+
+            for (let i = 0; i < sunLoopCount; i++) {
+                const archIdx = i % 14;
+                const baseTheta = (archIdx / 14) * Math.PI * 2.0 + 0.2;
+                const baseLat = (rand() - 0.5) * 0.7;
+                const s = rand();
+                const archSpan = 0.24 + (archIdx % 3) * 0.08;
+                const ang = baseTheta + (s - 0.5) * archSpan;
+                const heightFactor = Math.sin(s * Math.PI);
+                const rArch = sunR * (1.01 + heightFactor * (0.42 + 0.32 * (archIdx % 4) / 3));
+
+                const cosLat = Math.cos(baseLat);
+                const lx = Math.cos(ang) * cosLat * rArch;
+                const ly = (Math.sin(baseLat) + (s - 0.5) * 0.08) * rArch;
+                const lz = Math.sin(ang) * cosLat * rArch;
+
+                const glow = 0.55 + 0.45 * heightFactor;
+                pushParticle(glw, lx, ly, lz, lx / rArch, ly / rArch, lz / rArch, 1.0 * glow, 0.44 * glow, 0.12 * glow, 0, 1, 1.5, rand() * 6.283, 0, 0, 0, 0);
+            }
+
+            // 2. PLANETS, MOONS & EXTRA CELESTIAL BODIES
+            const basePlanetCounts = {
+                1: 24000, 2: 36000, 3: 98000, 4: 14000, 5: 42000,
+                6: 112000, 7: 6000, 8: 6000, 9: 7500, 10: 7000,
+                11: 72000, 12: 7000, 13: 28000, 14: 28000, 15: 5500
+            };
+
+            const extra2MCounts = isExtended2M ? {
+                16: 32000, 17: 20000, 18: 30000, 19: 22000, 20: 22000, 21: 18000
+            } : {};
+
+            const activeBodies = { ...basePlanetCounts };
+            Object.keys(activeBodies).forEach(k => {
+                activeBodies[k] = Math.round(activeBodies[k] * scaleFactor);
+            });
+            Object.keys(extra2MCounts).forEach(k => {
+                activeBodies[k] = extra2MCounts[k];
+            });
+
+            Object.keys(activeBodies).forEach(idStr => {
+                const bodyId = parseInt(idStr, 10);
+                const body = BODIES[bodyId];
+                const count = activeBodies[bodyId];
+                const rad = body.r;
+
+                for (let i = 0; i < count; i++) {
+                    if (std.ptr >= MAX_STD_BEFORE_RINGS) break;
+                    const pt = fibonacciSpherePoint(i, count, 0.006);
+                    let { nx, ny, nz, phi, lon, lat } = pt;
+                    let rSurf = rad;
+                    let pSize = 1.38;
+
+                    if (bodyId === 19) {
+                        nx *= 1.35; ny *= 0.72; nz *= 1.05;
+                    } else if (bodyId === 21) {
+                        const isTail = i > count * 0.35;
+                        if (isTail) {
+                            const tProg = (i - count * 0.35) / (count * 0.65);
+                            const tailLen = rad * (1.2 + tProg * 18.0);
+                            const spread = rad * (0.25 + tProg * 2.4);
+                            const lx = -tProg * tailLen + (rand() - 0.5) * spread;
+                            const ly = (rand() - 0.5) * spread;
+                            const lz = (rand() - 0.5) * spread;
+                            const fade = 1.0 - tProg * 0.65;
+                            pushParticle(std, lx, ly, lz, 0, 1, 0, 0.55 * fade, 0.86 * fade, 1.0 * fade, bodyId, 0, 1.15, (i % 360) * 0.01745, 0, 0, 0, 0);
+                            continue;
+                        }
+                        nx *= 1.45; ny *= 0.82; nz *= 0.85;
+                    }
+
+                    let cr = 0.8, cg = 0.8, cb = 0.8;
+
+                    if (bodyId === 1) {
+                        const n1 = Math.sin(lon * 8.0 + phi * 6.0) * Math.cos(phi * 9.0 - lon * 4.0);
+                        const n2 = Math.sin(lon * 17.0 - phi * 15.0) * 0.25;
+                        const shade = 0.60 + 0.11 * (n1 + n2);
+                        cr = shade * 1.05; cg = shade * 0.99; cb = shade * 0.93;
+                    } else if (bodyId === 2) {
+                        const swirl = 0.5 + 0.35 * Math.sin(phi * 9.0 + Math.sin(lon * 3.0) * 1.1) + 0.15 * Math.cos(phi * 16.0 - lon * 2.0);
+                        cr = 0.92 + 0.07 * swirl; cg = 0.74 + 0.11 * swirl; cb = 0.36 + 0.10 * swirl;
+                    } else if (bodyId === 3) {
+                        const surfNoise = fbm3D(nx * 2.6 + 1.7, ny * 2.6 - 0.8, nz * 2.6 + 3.1, 4);
+                        const detailNoise = fbm3D(nx * 9.5 - 4.2, ny * 9.5 + 2.3, nz * 9.5 - 1.9, 3);
+                        const cloudNoise = fbm3D(nx * 3.8 + detailNoise * 0.45, ny * 4.4, nz * 3.8 - detailNoise * 0.35, 4);
+
+                        const polarMask = smoothstepJS(0.84, 0.93, Math.abs(lat) + (detailNoise - 0.5) * 0.06);
+                        const elev = surfNoise + (detailNoise - 0.5) * 0.14;
+                        const landBlend = smoothstepJS(0.49, 0.53, elev);
+
+                        const depthFactor = smoothstepJS(0.32, 0.50, elev);
+                        const oceanR = 0.04 + 0.07 * depthFactor;
+                        const oceanG = 0.20 + 0.32 * depthFactor;
+                        const oceanB = 0.62 + 0.22 * depthFactor;
+
+                        const aridFactor = Math.exp(-Math.pow((Math.abs(lat) - 0.27) / 0.17, 2.0)) * smoothstepJS(0.42, 0.68, detailNoise);
+                        const highFactor = smoothstepJS(0.58, 0.72, elev);
+
+                        let landR = 0.16 * (1.0 - aridFactor) + 0.74 * aridFactor;
+                        let landG = 0.50 * (1.0 - aridFactor) + 0.57 * aridFactor;
+                        let landB = 0.16 * (1.0 - aridFactor) + 0.28 * aridFactor;
+
+                        landR = landR * (1.0 - highFactor) + 0.54 * highFactor;
+                        landG = landG * (1.0 - highFactor) + 0.49 * highFactor;
+                        landB = landB * (1.0 - highFactor) + 0.45 * highFactor;
+
+                        let baseR = oceanR * (1.0 - landBlend) + landR * landBlend;
+                        let baseG = oceanG * (1.0 - landBlend) + landG * landBlend;
+                        let baseB = oceanB * (1.0 - landBlend) + landB * landBlend;
+
+                        baseR = baseR * (1.0 - polarMask) + 0.94 * polarMask;
+                        baseG = baseG * (1.0 - polarMask) + 0.97 * polarMask;
+                        baseB = baseB * (1.0 - polarMask) + 1.00 * polarMask;
+
+                        const cloudAlpha = smoothstepJS(0.54, 0.74, cloudNoise) * 0.78;
+                        rSurf = rad * (1.0 + cloudAlpha * 0.015);
+                        pSize = 1.38 + cloudAlpha * 0.12;
+
+                        cr = baseR * (1.0 - cloudAlpha) + 0.97 * cloudAlpha;
+                        cg = baseG * (1.0 - cloudAlpha) + 0.99 * cloudAlpha;
+                        cb = baseB * (1.0 - cloudAlpha) + 1.00 * cloudAlpha;
+                    } else if (bodyId === 4) {
+                        const mare = Math.sin(lon * 2.4 + 0.9) * Math.sin(phi * 2.6) + 0.35 * Math.cos(lon * 5.0);
+                        const mariaBlend = Math.max(0.0, Math.min(1.0, (mare - 0.12) * 3.5));
+                        const shade = 0.72 * (1.0 - mariaBlend) + 0.38 * mariaBlend;
+                        cr = shade; cg = shade; cb = shade * 1.02;
+                    } else if (bodyId === 5) {
+                        if (Math.abs(lat) > 0.89) {
+                            cr = 0.96; cg = 0.94; cb = 0.92;
+                        } else {
+                            const geo = Math.sin(lon * 2.8 + phi * 2.0) + 0.45 * Math.cos(lon * 6.0 - phi * 4.5);
+                            const darkBlend = Math.max(0.0, Math.min(1.0, (-0.28 - geo) * 3.2));
+                            const rustR = 0.88 + 0.05 * Math.sin(phi * 7.0);
+                            const rustG = 0.36 + 0.05 * Math.cos(lon * 4.0);
+                            const rustB = 0.18;
+
+                            cr = rustR * (1.0 - darkBlend) + 0.42 * darkBlend;
+                            cg = rustG * (1.0 - darkBlend) + 0.21 * darkBlend;
+                            cb = rustB * (1.0 - darkBlend) + 0.13 * darkBlend;
+                        }
+                    } else if (bodyId === 6) {
+                        pSize = 1.52;
+                        const wave = 0.04 * Math.sin(lon * 8.0 + phi * 5.0);
+                        const yBand = lat + wave;
+                        const zoneFactor = 0.5 + 0.5 * Math.sin(yBand * 16.0);
+                        const fineBand = 0.5 + 0.5 * Math.cos(yBand * 36.0);
+
+                        const zR = 0.95 - 0.04 * fineBand, zG = 0.88 - 0.06 * fineBand, zB = 0.76 - 0.08 * fineBand;
+                        const bR = 0.78 + 0.08 * fineBand, bG = 0.49 + 0.06 * fineBand, bB = 0.29 + 0.04 * fineBand;
+
+                        cr = bR * (1.0 - zoneFactor) + zR * zoneFactor;
+                        cg = bG * (1.0 - zoneFactor) + zG * zoneFactor;
+                        cb = bB * (1.0 - zoneFactor) + zB * zoneFactor;
+
+                        const dLat = (lat + 0.34) / 0.14;
+                        let dLon = lon - 1.1;
+                        while (dLon > Math.PI) dLon -= Math.PI * 2.0;
+                        while (dLon < -Math.PI) dLon += Math.PI * 2.0;
+                        dLon /= 0.32;
+                        const spotR2 = dLat * dLat + dLon * dLon;
+                        if (spotR2 < 1.0) {
+                            const spotBlend = Math.pow(1.0 - spotR2, 0.65);
+                            const swirl = 0.90 + 0.10 * Math.cos(Math.sqrt(spotR2) * 8.0);
+                            cr = cr * (1.0 - spotBlend) + (0.93 * swirl) * spotBlend;
+                            cg = cg * (1.0 - spotBlend) + (0.35 * swirl) * spotBlend;
+                            cb = cb * (1.0 - spotBlend) + (0.19 * swirl) * spotBlend;
+                        }
+                    } else if (bodyId === 7) {
+                        const vPatch = Math.max(0.0, Math.min(1.0, Math.sin(lon * 5.0) * Math.cos(phi * 5.0) * 2.5));
+                        cr = 0.96; cg = 0.84 * (1.0 - vPatch) + 0.52 * vPatch; cb = 0.22 * (1.0 - vPatch) + 0.12 * vPatch;
+                    } else if (bodyId === 8 || bodyId === 17) {
+                        const lineae = Math.exp(-Math.pow(Math.sin(lon * 6.0 + phi * 4.0) / 0.14, 2.0));
+                        cr = 0.95 * (1.0 - lineae) + 0.78 * lineae;
+                        cg = 0.97 * (1.0 - lineae) + 0.65 * lineae;
+                        cb = 1.00 * (1.0 - lineae) + 0.55 * lineae;
+                    } else if (bodyId === 9 || bodyId === 10 || bodyId === 16) {
+                        const base = bodyId === 9 ? 0.66 : (bodyId === 16 ? 0.58 : 0.48);
+                        const mod = 0.06 * Math.sin(lon * 4.0 + phi * 5.0);
+                        cr = (base + mod) * 1.03; cg = base + mod; cb = (base + mod) * 0.95;
+                    } else if (bodyId === 11) {
+                        pSize = 1.48;
+                        const sBand = 0.5 + 0.5 * Math.sin(lat * 15.0 + 0.03 * Math.sin(lon * 6.0));
+                        cr = 0.90 + 0.08 * sBand; cg = 0.78 + 0.11 * sBand; cb = 0.50 + 0.14 * sBand;
+                    } else if (bodyId === 12) {
+                        cr = 0.91; cg = 0.66; cb = 0.25;
+                    } else if (bodyId === 13) {
+                        const uBand = 0.5 + 0.5 * Math.sin(lat * 8.0);
+                        cr = 0.48 + 0.07 * uBand; cg = 0.86 + 0.07 * uBand; cb = 0.94 + 0.04 * uBand;
+                    } else if (bodyId === 14 || bodyId === 18) {
+                        const nBand = 0.5 + 0.5 * Math.sin(lat * 12.0 + 0.05 * Math.cos(lon * 5.0));
+                        cr = 0.14 + 0.08 * nBand; cg = 0.38 + 0.14 * nBand; cb = 0.92 + 0.06 * nBand;
+                    } else if (bodyId === 19) {
+                        cr = 0.84; cg = 0.87; cb = 0.96;
+                    } else if (bodyId === 20) {
+                        cr = 0.92; cg = 0.56; cb = 0.36;
+                    } else {
+                        cr = 0.80; cg = 0.72; cb = 0.65;
+                    }
+
+                    const normLen = Math.hypot(nx, ny, nz) || 1.0;
+                    pushParticle(std, nx * rSurf, ny * rSurf, nz * rSurf, nx / normLen, ny / normLen, nz / normLen, cr, cg, cb, bodyId, 0, pSize, (i % 360) * 0.01745, 0, 0, 0, 0);
+                }
+            });
+
+            // 3. SATURN'S RING SYSTEM
+            const saturnRingCount = Math.min(ringReserve, Math.max(0, STD_COUNT - std.ptr - 8000));
+            const saturnR = BODIES[11].r;
+            for (let i = 0; i < saturnRingCount; i++) {
+                let ringRadNorm;
+                const zoneRoll = rand();
+                if (zoneRoll < 0.12) ringRadNorm = 1.24 + rand() * 0.28;
+                else if (zoneRoll < 0.64) ringRadNorm = 1.525 + rand() * 0.425;
+                else if (zoneRoll < 0.97) ringRadNorm = 2.025 + rand() * 0.245;
+                else ringRadNorm = 2.315 + (rand() - 0.5) * 0.015;
+
+                const rDist = saturnR * ringRadNorm;
+                const angle = (i / Math.max(1, saturnRingCount)) * Math.PI * 2.0 * 37.0 + rand() * 0.15;
+                const thickness = (rand() - 0.5) * 0.025;
+
+                const ripple = 0.84 + 0.16 * Math.sin(ringRadNorm * 220.0);
+                let brightness = ripple;
+                if (ringRadNorm < 1.52) brightness *= 0.52;
+                else if (ringRadNorm > 2.02) brightness *= 0.84;
+
+                pushParticle(std, Math.cos(angle) * rDist, thickness, Math.sin(angle) * rDist, 0, 1, 0, 0.98 * brightness, 0.90 * brightness, 0.74 * brightness, 11, 1.0, 1.35, angle, 0, 0, 0, 0);
+            }
+
+            // 4. MAIN ASTEROID BELT
+            const asteroidBudget = Math.max(0, Math.round(95000 * scaleFactor));
+            const asteroidCount = Math.min(asteroidBudget, Math.max(0, STD_COUNT - std.ptr - 6000));
+            for (let i = 0; i < asteroidCount; i++) {
+                let tBelt = rand();
+                if (Math.abs(tBelt - 0.38) < 0.025 || Math.abs(tBelt - 0.68) < 0.025) {
+                    tBelt = (tBelt + 0.15) % 1.0;
+                }
+                const dObs = 35.0 + tBelt * 7.5;
+                const dAu  = 38.0 + tBelt * 24.0;
+                const angle = rand() * Math.PI * 2.0;
+                const inc = randGauss() * 0.13;
+                const orbSpeed = 1.0 / Math.pow(1.8 + tBelt * 1.5, 1.5);
+                const tone = 0.46 + rand() * 0.34;
+                const warmTint = rand() > 0.5 ? 1.07 : 0.96;
+
+                pushParticle(std, 0, 0, 0, 0, 1, 0, tone * warmTint, tone * 0.95, tone * 0.88, -1, 2, 0.92 + rand() * 0.85, angle, dObs, dAu, orbSpeed, inc);
+            }
+
+            // 5. KUIPER BELT & TNOs
+            const kuiperBudget = Math.max(0, Math.round(85000 * scaleFactor));
+            const kuiperCount = Math.min(kuiperBudget, Math.max(0, STD_COUNT - std.ptr - 4000));
+            for (let i = 0; i < kuiperCount; i++) {
+                const tKuiper = Math.pow(rand(), 0.85);
+                const dObs = 113.0 + tKuiper * 32.0;
+                const dAu  = 395.0 + tKuiper * 165.0;
+                const angle = rand() * Math.PI * 2.0;
+                const inc = randGauss() * 0.21;
+                const orbSpeed = 1.0 / Math.pow(30.0 + tKuiper * 20.0, 1.5);
+                const icy = 0.50 + rand() * 0.40;
+                const isReddish = rand() < 0.25;
+
+                pushParticle(std, 0, 0, 0, 0, 1, 0, isReddish ? icy * 1.06 : icy * 0.78, isReddish ? icy * 0.86 : icy * 0.90, icy * 1.14, -1, 2, 0.98 + rand() * 0.90, angle, dObs, dAu, orbSpeed, inc);
+            }
+
+            // 6. ORBIT RINGS & ZODIACAL DUST
+            const orbitBodies = isExtended2M
+                ? [1, 2, 3, 5, 6, 11, 13, 14, 15, 16, 19, 20, 21]
+                : [1, 2, 3, 5, 6, 11, 13, 14, 15];
+            const pointsPerOrbit = Math.max(400, Math.round(1400 * scaleFactor));
+            orbitBodies.forEach(bId => {
+                const b = BODIES[bId];
+                const orbSpeed = 1.0 / b.period;
+                const incRad = (b.inc * Math.PI) / 180.0;
+                for (let k = 0; k < pointsPerOrbit && std.ptr < STD_COUNT; k++) {
+                    const ang = (k / pointsPerOrbit) * Math.PI * 2.0;
+                    pushParticle(std, 0, 0, 0, 0, 1, 0, 0.22, 0.55, 0.82, bId, 3, 0.85, ang, b.dObs, b.dAu, orbSpeed, incRad);
+                }
+            });
+
+            while (std.ptr < STD_COUNT) {
+                const rDust = 10.0 + rand() * 98.0;
+                const rDustAu = 10.0 + rand() * 340.0;
+                const ang = rand() * Math.PI * 2.0;
+                const inc = randGauss() * 0.07;
+                pushParticle(std, 0, 0, 0, 0, 1, 0, 0.34, 0.38, 0.52, -1, 2, 0.72, ang, rDust, rDustAu, 0.15 / Math.sqrt(rDust), inc);
+            }
+
+            // 7. DEEP SKY STARS & MILKY WAY BAND
+            while (glw.ptr < GLW_COUNT) {
+                const isMilkyWay = rand() < 0.58;
+                let sx, sy, sz;
+                const R = 1400.0 + rand() * 350.0;
+
+                if (isMilkyWay) {
+                    const galLon = rand() * Math.PI * 2.0;
+                    const galLat = randGauss() * 0.14;
+                    const gx = R * Math.cos(galLat) * Math.cos(galLon);
+                    const gy = R * Math.sin(galLat);
+                    const gz = R * Math.cos(galLat) * Math.sin(galLon);
+                    const tiltG = 0.56;
+                    sx = gx * Math.cos(tiltG) - gy * Math.sin(tiltG);
+                    sy = gx * Math.sin(tiltG) + gy * Math.cos(tiltG);
+                    sz = gz;
+                } else {
+                    const theta = rand() * Math.PI * 2.0;
+                    const phi = Math.acos(2.0 * rand() - 1.0);
+                    sx = R * Math.sin(phi) * Math.cos(theta);
+                    sy = R * Math.cos(phi);
+                    sz = R * Math.sin(phi) * Math.sin(theta);
+                }
+
+                const spec = rand();
+                let sr = 1.0, sg = 1.0, sb = 1.0;
+                if (spec < 0.24) { sr = 0.66; sg = 0.82; sb = 1.0; }
+                else if (spec < 0.62) { sr = 0.98; sg = 0.98; sb = 1.0; }
+                else if (spec < 0.86) { sr = 1.0; sg = 0.88; sb = 0.68; }
+                else { sr = 1.0; sg = 0.65; sb = 0.48; }
+
+                const mag = isMilkyWay ? (0.18 + rand() * 0.35) : (0.45 + rand() * 0.55);
+                pushParticle(glw, sx, sy, sz, 0, 1, 0, sr * mag, sg * mag, sb * mag, -2, 4, isMilkyWay ? 1.2 : (1.4 + rand() * 1.5), rand() * 6.283, 0, 0, 0, 0);
+            }
+
+            const bodyPositions = [];
+            const bodyRotations = [];
+            for (let i = 0; i < BODY_COUNT; i++) {
+                bodyPositions.push(new THREE.Vector3());
+                bodyRotations.push(new THREE.Vector4(0, 0, 0, 1));
+            }
+
+            const vertexShaderSrc = `
+                attribute vec3 aNormal;
+                attribute vec3 aColor;
+                attribute vec4 aMeta1;
+                attribute vec4 aMeta2;
+
+                uniform float uTime;
+                uniform float uScaleBlend;
+                uniform float uPixelRatio;
+                uniform vec3 uBodyPositions[${BODY_COUNT}];
+                uniform vec4 uBodyQuats[${BODY_COUNT}];
+
+                varying vec3 vColor;
+                varying float vType;
+
+                vec3 applyQuat(vec3 v, vec4 q) {
+                    return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+                }
+
+                void main() {
+                    int bId = int(aMeta1.x + 0.5);
+                    float pType = aMeta1.y;
+                    float pSize = aMeta1.z;
+                    float phase = aMeta1.w;
+
+                    vec3 worldPos = position;
+                    vec3 worldNorm = aNormal;
+
+                    if (pType < 1.5) {
+                        vec3 bCenter = vec3(0.0);
+                        vec4 bQuat = vec4(0.0, 0.0, 0.0, 1.0);
+                        for (int i = 0; i < ${BODY_COUNT}; i++) {
+                            if (i == bId) {
+                                bCenter = uBodyPositions[i];
+                                bQuat = uBodyQuats[i];
+                                break;
+                            }
+                        }
+
+                        vec3 localPos = position;
+                        if (pType > 0.5 && pType < 1.5 && bId != 11) {
+                            float pulse = 1.0 + 0.03 * sin(uTime * 3.5 + phase);
+                            localPos *= pulse;
+                        }
+
+                        worldPos = bCenter + applyQuat(localPos, bQuat);
+                        worldNorm = normalize(applyQuat(aNormal, bQuat));
+
+                        if (bId == 0) {
+                            vColor = aColor * 1.12;
+                        } else if (bId == 11 && pType > 0.5 && pType < 1.5) {
+                            vec3 sunDir = normalize(-bCenter);
+                            vec3 relFromSaturn = worldPos - bCenter;
+                            float projAlongSun = dot(relFromSaturn, sunDir);
+                            float ringShadowFactor = 1.0;
+                            if (projAlongSun < 0.0) {
+                                vec3 perpVec = relFromSaturn - sunDir * projAlongSun;
+                                float distAxis = length(perpVec);
+                                float edgeSoftness = smoothstep(2.92, 2.68, distAxis);
+                                ringShadowFactor = mix(1.0, 0.18, edgeSoftness);
+                            }
+                            vColor = aColor * ringShadowFactor;
+                        } else {
+                            vec3 toSun = normalize(-worldPos);
+                            float ndotl = dot(worldNorm, toSun);
+                            float dayLight = smoothstep(-0.35, 0.55, ndotl);
+                            float rimLight = pow(1.0 - max(0.0, dot(worldNorm, normalize(cameraPosition - worldPos))), 3.5) * smoothstep(-0.15, 0.65, ndotl);
+
+                            float ringShadow = 1.0;
+                            if (bId == 11) {
+                                vec3 sunDir = normalize(-bCenter);
+                                vec3 relPos = worldPos - bCenter;
+                                vec3 ringNorm = normalize(applyQuat(vec3(0.0, 1.0, 0.0), bQuat));
+                                float denom = dot(sunDir, ringNorm);
+                                if (abs(denom) > 0.001 && dot(relPos, ringNorm) * denom > 0.0) {
+                                    float tHit = -dot(relPos, ringNorm) / denom;
+                                    if (tHit > 0.0) {
+                                        vec3 hitPt = relPos + sunDir * tHit;
+                                        float rHit = length(hitPt) / 2.80;
+                                        if (rHit > 1.24 && rHit < 2.30 && !(rHit > 1.95 && rHit < 2.025)) {
+                                            ringShadow = 0.28;
+                                        }
+                                    }
+                                }
+                            }
+
+                            float ambient = 0.16;
+                            vColor = aColor * ((ambient + 0.94 * dayLight) * ringShadow + vec3(0.14, 0.26, 0.48) * rimLight * 0.25);
+                        }
+                    } else if (pType < 2.5) {
+                        float dist = mix(aMeta2.x, aMeta2.y, uScaleBlend);
+                        float angle = phase + uTime * aMeta2.z * 6.2831853;
+                        float inc = aMeta2.w;
+                        worldPos = vec3(cos(angle) * dist, sin(angle) * dist * sin(inc), sin(angle) * dist);
+                        vColor = aColor * 0.95;
+                    } else if (pType < 3.5) {
+                        float dist = mix(aMeta2.x, aMeta2.y, uScaleBlend);
+                        float inc = aMeta2.w;
+                        worldPos = vec3(cos(phase) * dist, sin(phase) * dist * sin(inc), sin(phase) * dist);
+                        vColor = aColor * 0.72;
+                    } else {
+                        vColor = aColor;
+                    }
+
+                    vType = pType;
+                    vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+
+                    float distToCam = max(1.0, -mvPosition.z);
+                    float sizeScale = (pType > 3.5) ? 1.45 : (145.0 / distToCam);
+                    float maxPt = (${totalParticles} >= 2000000) ? 7.5 : 11.0;
+                    float minPt = (pType < 0.5) ? 2.0 : ((pType > 3.5) ? 0.8 : 1.15);
+                    gl_PointSize = clamp(pSize * sizeScale * uPixelRatio, minPt, maxPt);
+                }
+            `;
+
+            const stdFragmentShaderSrc = `
+                varying vec3 vColor;
+                varying float vType;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float rSq = dot(coord, coord);
+                    if (rSq > 0.25) discard;
+                    float alpha = (vType < 0.5) ? smoothstep(0.25, 0.08, rSq) : smoothstep(0.25, 0.02, rSq);
+                    gl_FragColor = vec4(vColor, alpha);
+                }
+            `;
+
+            const glowFragmentShaderSrc = `
+                varying vec3 vColor;
+                varying float vType;
+                void main() {
+                    vec2 coord = gl_PointCoord - vec2(0.5);
+                    float rSq = dot(coord, coord);
+                    if (rSq > 0.25) discard;
+                    float glow = smoothstep(0.25, 0.0, rSq);
+                    float alpha = (vType > 3.5) ? glow * 0.42 : glow * 0.38;
+                    gl_FragColor = vec4(vColor * glow, alpha);
+                }
+            `;
+
+            function buildPointsObject(layer, fragSrc, blendingMode, depthWriteBool) {
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute('position', new THREE.BufferAttribute(layer.positions, 3));
+                geom.setAttribute('aNormal',  new THREE.BufferAttribute(layer.normals, 3));
+                geom.setAttribute('aColor',   new THREE.BufferAttribute(layer.colors, 3));
+                geom.setAttribute('aMeta1',   new THREE.BufferAttribute(layer.meta1, 4));
+                geom.setAttribute('aMeta2',   new THREE.BufferAttribute(layer.meta2, 4));
+
+                const mat = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uTime:          { value: simTime },
+                        uScaleBlend:    { value: simScaleBlend },
+                        uPixelRatio:    { value: Math.min(window.devicePixelRatio, 2) },
+                        uBodyPositions: { value: bodyPositions },
+                        uBodyQuats:     { value: bodyRotations }
+                    },
+                    vertexShader: vertexShaderSrc,
+                    fragmentShader: fragSrc,
+                    transparent: true,
+                    depthWrite: depthWriteBool,
+                    blending: blendingMode
+                });
+
+                const pts = new THREE.Points(geom, mat);
+                pts.frustumCulled = false;
+                simScene.add(pts);
+                simPointsObjects.push({ points: pts, geometry: geom, material: mat });
+                return mat;
+            }
+
+            simStandardMaterial = buildPointsObject(std, stdFragmentShaderSrc, THREE.NormalBlending, true);
+            simGlowMaterial     = buildPointsObject(glw, glowFragmentShaderSrc, THREE.AdditiveBlending, false);
+        }
+
+        function attachCameraControls(domEl, container) {
+            domEl.addEventListener('mousedown', (e) => {
+                if (e.button === 2 || e.shiftKey) camState.isPanning = true;
+                else camState.isDragging = true;
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+            });
+
+            window.addEventListener('mouseup', () => {
+                camState.isDragging = false;
+                camState.isPanning = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                const dx = e.clientX - camState.prevX;
+                const dy = e.clientY - camState.prevY;
+                camState.prevX = e.clientX;
+                camState.prevY = e.clientY;
+
+                if (camState.isDragging) {
+                    camState.targetTheta -= dx * 0.0065;
+                    camState.targetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, camState.targetPhi - dy * 0.0065));
+                } else if (camState.isPanning) {
+                    const panFactor = camState.radius * 0.0015;
+                    camState.panOffset.x -= dx * panFactor * Math.cos(camState.theta);
+                    camState.panOffset.z += dx * panFactor * Math.sin(camState.theta);
+                    camState.panOffset.y += dy * panFactor;
+                }
+            });
+
+            domEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            domEl.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 1.12 : 0.89;
+                camState.targetRadius = Math.max(2.2, Math.min(800, camState.targetRadius * zoomFactor));
+            }, { passive: false });
+
+            domEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    camState.isDragging = true;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    camState.isDragging = false;
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    camState.pinchDist = Math.hypot(dx, dy);
+                }
+            }, { passive: true });
+
+            domEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && camState.isDragging) {
+                    const dx = e.touches[0].clientX - camState.prevX;
+                    const dy = e.touches[0].clientY - camState.prevY;
+                    camState.prevX = e.touches[0].clientX;
+                    camState.prevY = e.touches[0].clientY;
+                    camState.targetTheta -= dx * 0.008;
+                    camState.targetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, camState.targetPhi - dy * 0.008));
+                } else if (e.touches.length === 2) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const newDist = Math.hypot(dx, dy);
+                    if (camState.pinchDist > 0) {
+                        const scale = camState.pinchDist / newDist;
+                        camState.targetRadius = Math.max(2.2, Math.min(800, camState.targetRadius * scale));
+                    }
+                    camState.pinchDist = newDist;
+                }
+            }, { passive: true });
+
+            window.addEventListener('resize', () => {
+                if (!simRenderer || !simCamera) return;
+                const w = container.clientWidth || window.innerWidth;
+                const h = container.clientHeight || window.innerHeight;
+                simCamera.aspect = w / h;
+                simCamera.updateProjectionMatrix();
+                simRenderer.setSize(w, h);
+            });
+        }
+
+        let lastFrameTime = performance.now();
+        let fpsFrames = 0;
+        let fpsLastCheck = performance.now();
+        const tmpEuler = new THREE.Euler();
+        const tmpQuatTilt = new THREE.Quaternion();
+        const tmpQuatSpin = new THREE.Quaternion();
+        const yAxis = new THREE.Vector3(0, 1, 0);
+
+        function animateSolarSim(now) {
+            requestAnimationFrame(animateSolarSim);
+
+            const dt = Math.min(0.05, (now - lastFrameTime) * 0.001);
+            lastFrameTime = now;
+
+            simTime += dt * 0.015 * simSpeed;
+
+            fpsFrames++;
+            if (now - fpsLastCheck >= 500) {
+                const fps = Math.round((fpsFrames * 1000) / (now - fpsLastCheck));
+                const fpsEl = document.getElementById('sim-fps-counter');
+                if (fpsEl) fpsEl.textContent = `${fps} FPS • GPU WebGL`;
+                fpsFrames = 0;
+                fpsLastCheck = now;
+            }
+
+            const posUniforms = simStandardMaterial.uniforms.uBodyPositions.value;
+            const quatUniforms = simStandardMaterial.uniforms.uBodyQuats.value;
+
+            for (let i = 0; i < BODY_COUNT; i++) {
+                const b = BODIES[i];
+                computeBodyPosition(b, simTime, simScaleBlend, posUniforms[i]);
+
+                const tiltRad = (b.tilt * Math.PI) / 180.0;
+                tmpEuler.set(0, 0, tiltRad, 'XYZ');
+                tmpQuatTilt.setFromEuler(tmpEuler);
+                tmpQuatSpin.setFromAxisAngle(yAxis, simTime * b.rot * 6.0);
+                tmpQuatTilt.multiply(tmpQuatSpin);
+
+                quatUniforms[i].set(tmpQuatTilt.x, tmpQuatTilt.y, tmpQuatTilt.z, tmpQuatTilt.w);
+            }
+
+            simStandardMaterial.uniforms.uTime.value = simTime;
+            simStandardMaterial.uniforms.uScaleBlend.value = simScaleBlend;
+            simGlowMaterial.uniforms.uTime.value = simTime;
+            simGlowMaterial.uniforms.uScaleBlend.value = simScaleBlend;
+
+            let targetCenter = new THREE.Vector3(0, 0, 0);
+            if (simFocusTarget !== 'overview' && simFocusTarget !== 'asteroids' && simFocusTarget !== 'kuiper') {
+                const foundIdx = BODIES.findIndex(b => b.key === simFocusTarget);
+                if (foundIdx >= 0) targetCenter.copy(posUniforms[foundIdx]);
+            }
+            targetCenter.add(camState.panOffset);
+            camState.lookAt.lerp(targetCenter, 0.12);
+
+            camState.radius += (camState.targetRadius - camState.radius) * 0.12;
+            camState.theta  += (camState.targetTheta  - camState.theta)  * 0.12;
+            camState.phi    += (camState.targetPhi    - camState.phi)    * 0.12;
+
+            const sinPhi = Math.sin(camState.phi);
+            simCamera.position.set(
+                camState.lookAt.x + camState.radius * sinPhi * Math.sin(camState.theta),
+                camState.lookAt.y + camState.radius * Math.cos(camState.phi),
+                camState.lookAt.z + camState.radius * sinPhi * Math.cos(camState.theta)
+            );
+            simCamera.lookAt(camState.lookAt);
+
+            simRenderer.render(simScene, simCamera);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            buildSolarSystem(simParticleCount);
+            lastFrameTime = performance.now();
+            fpsLastCheck = performance.now();
+            requestAnimationFrame(animateSolarSim);
+        });
+    </script>
+</body>
+</html>
